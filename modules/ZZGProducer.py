@@ -152,9 +152,14 @@ class ZZGProducer(Module):
           additional_vetoElectrons_pdgid.append(electrons[iele].pdgId)
           additional_vetoElectrons_id.append(iele)
 
+    # https://twiki.cern.ch/twiki/bin/view/CMS/BtagRecommendation106XUL17
     # tight ak4 jets, 2016 (111=7), 2017/2018 (110=6), medium B-tag WP
-    # CSVv2 loose: 0.5803, medium: 0.8838, tight: 0.9693
-    # DeepCSV loose: 0.1522, medium: 0.4941, tight: 0.8001
+    # DeepCSV=(nanoaod btagDeepB) loose: 0.1355, medium: 0.4506, tight: 0.7738
+    # DeepFlavor=(nanoaod btagDeepFlavB) loose: 0.0532, medium: 0.3040, tight: 0.7476
+
+    # c-jet tag is based on two-D cuts, medium DeepJet WP:
+    # CvsL=btagDeepFlavCvL: 0.085, CvsB=btagDeepFlavCvB: 0.34
+    # c-tag not available in NANOAOD yet
     jets = Collection(event, 'Jet')
     tightJets_nob_CSVloose_id = []
     tightJets_b_CSVloose_id = []
@@ -203,13 +208,13 @@ class ZZGProducer(Module):
           if (jets[ijet].btagCSVV2 > 0.5803):
             tightJets_b_CSVloose_id.append(ijet)
           else:tightJets_nob_CSVloose_id.append(ijet)
-          if (jets[ijet].btagDeepB > 0.8001):
+          if (jets[ijet].btagDeepB > 0.7738):
             tightJets_b_DeepCSVtight_id.append(ijet)
           else:tightJets_nob_DeepCSVtight_id.append(ijet)
-          if (jets[ijet].btagDeepB > 0.4941):
+          if (jets[ijet].btagDeepB > 0.4506):
             tightJets_b_DeepCSVmedium_id.append(ijet)
           else:tightJets_nob_DeepCSVmedium_id.append(ijet)
-          if (jets[ijet].btagDeepB > 0.1522):
+          if (jets[ijet].btagDeepB > 0.1355):
             tightJets_b_DeepCSVloose_id.append(ijet)
           else:tightJets_nob_DeepCSVloose_id.append(ijet)
 
