@@ -401,7 +401,7 @@ class ZZGProducer(Module):
     ZZ_region=0
     ZZ_drll=False
     ZZ_mll=False
-    ZZ_dremu=False
+    ZZ_dremu=True
 
 #    ttZ_bb=False
 #    ttZ_nl=False
@@ -439,8 +439,8 @@ class ZZGProducer(Module):
 
     # require DeltaR(ele, mu)>0.05 to remove spurious ghost leptons formed from ambiguities in track reconstruction, following ZZto4L
     if ZZ_nl and len(tightMuons)==2:
-      if (tightMuons[0].DeltaR(tightElectrons[0])>0.05 and tightMuons[0].DeltaR(tightElectrons[1])>0.05 and tightMuons[1].DeltaR(tightElectrons[0])>0.05 and tightMuons[1].DeltaR(tightElectrons[1])>0.05):
-        ZZ_dremu=True
+      if not (tightMuons[0].DeltaR(tightElectrons[0])>0.05 and tightMuons[0].DeltaR(tightElectrons[1])>0.05 and tightMuons[1].DeltaR(tightElectrons[0])>0.05 and tightMuons[1].DeltaR(tightElectrons[1])>0.05):
+        ZZ_dremu=False
 
     Z1=TLorentzVector()
     Z2=TLorentzVector()
