@@ -21,3 +21,8 @@ crab status -d crab_DoubleMuon_C
 crab status -d crab_DoubleMuon_D
 crab status -d crab_DoubleMuon_E
 crab status -d crab_DoubleMuon_F
+crab status -d crab_DoubleEG_B
+crab status -d crab_DoubleEG_C
+crab status -d crab_DoubleEG_D
+crab status -d crab_DoubleEG_E
+crab status -d crab_DoubleEG_F

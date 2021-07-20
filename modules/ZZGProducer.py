@@ -8,6 +8,7 @@ from PhysicsTools.NanoAODTools.postprocessing.framework.eventloop import Module
 import math
 import os
 import numpy as np
+from numpy import sign
 
 class ZZGProducer(Module):
   def __init__( self , year ):
@@ -30,6 +31,7 @@ class ZZGProducer(Module):
     self.out.branch("ZZ_Z2_l1_id", "I")
     self.out.branch("ZZ_Z2_l2_id", "I")
     self.out.branch("ZZ_SR", "I")
+    self.out.branch("ZZ_region", "I")
     self.out.branch("Z1_l1_pt", "F")
     self.out.branch("Z1_l1_eta", "F")
     self.out.branch("Z1_l1_phi", "F")
@@ -58,18 +60,9 @@ class ZZGProducer(Module):
     self.out.branch("Z2_eta", "F")
     self.out.branch("Z2_phi", "F")
     self.out.branch("Z2_mass", "F")
-    self.out.branch("matched_photon_pt", "F")
-    self.out.branch("matched_photon_eta", "F")
-    self.out.branch("matched_photon_phi", "F")
-    self.out.branch("matched_photon_mass", "F")
-    self.out.branch("matched_photon_isScEtaEB","B")
-    self.out.branch("matched_photon_isScEtaEE","B")
-    self.out.branch("unmatched_photon_pt", "F")
-    self.out.branch("unmatched_photon_eta", "F")
-    self.out.branch("unmatched_photon_phi", "F")
-    self.out.branch("unmatched_photon_mass", "F")
-    self.out.branch("unmatched_photon_isScEtaEB","B")
-    self.out.branch("unmatched_photon_isScEtaEE","B")
+    self.out.branch("loosePhotons_matched_id","I",lenVar="nPhoton")
+    self.out.branch("loosePhotons_unmatched_id","I",lenVar="nPhoton")
+    self.out.branch("tightJets_id","I",lenVar="nJet")
     self.out.branch("tightJets_nob_CSVloose_id","I",lenVar="nJet")
     self.out.branch("tightJets_b_CSVloose_id","I",lenVar="nJet")
     self.out.branch("tightJets_nob_CSVmedium_id","I",lenVar="nJet")
@@ -106,7 +99,7 @@ class ZZGProducer(Module):
     # total number of ele+muon, currently require at least 3 leptons (WZ/ZZ/ttZ regions will be used)
     if ((event.nMuon + event.nElectron) < 3): return False
 
-    # Muon selection: tight cut-based ID + tight PF iso, or loose cut-based ID + loose PF iso
+    # Muon selection: medium cut-based ID + medium PF iso, or loose cuts
     muons = Collection(event, 'Muon')
     muon_v4_temp=TLorentzVector()
     tightMuons = []
@@ -115,21 +108,34 @@ class ZZGProducer(Module):
     additional_looseMuons = []
     additional_looseMuons_pdgid = []
     additional_looseMuons_id = []
+#    for imu in range(0, event.nMuon):
+#      if (muons[imu].mediumId):
+#        if (muons[imu].pfRelIso04_all<0.2 and abs(muons[imu].eta)<2.4 and event.Muon_corrected_pt[imu]>5):
+#          muon_v4_temp.SetPtEtaPhiM(event.Muon_corrected_pt[imu], muons[imu].eta, muons[imu].phi, muons[imu].mass)
+#          tightMuons.append(muon_v4_temp.Clone())
+#          tightMuons_pdgid.append(muons[imu].pdgId)
+#          tightMuons_id.append(imu)
+#      elif (muons[imu].looseId):
+#        if (muons[imu].pfRelIso04_all<0.25 and abs(muons[imu].eta)<2.4 and event.Muon_corrected_pt[imu]>5):
+#          muon_v4_temp.SetPtEtaPhiM(event.Muon_corrected_pt[imu], muons[imu].eta, muons[imu].phi, muons[imu].mass)
+#          additional_looseMuons.append(muon_v4_temp.Clone())
+#          additional_looseMuons_pdgid.append(muons[imu].pdgId)
+#          additional_looseMuons_id.append(imu)
     for imu in range(0, event.nMuon):
-      if (muons[imu].tightId):
-        if (muons[imu].pfRelIso04_all<0.15 and abs(muons[imu].eta)<2.4 and event.Muon_corrected_pt[imu]>5):
+      if (muons[imu].looseId):
+        if (muons[imu].pfRelIso03_all<0.35 and abs(muons[imu].eta)<2.4 and event.Muon_corrected_pt[imu]>5):
           muon_v4_temp.SetPtEtaPhiM(event.Muon_corrected_pt[imu], muons[imu].eta, muons[imu].phi, muons[imu].mass)
           tightMuons.append(muon_v4_temp.Clone())
           tightMuons_pdgid.append(muons[imu].pdgId)
           tightMuons_id.append(imu)
-      elif (muons[imu].looseId):
-        if (muons[imu].pfRelIso04_all<0.25 and abs(muons[imu].eta)<2.4 and event.Muon_corrected_pt[imu]>5):
+      elif not (muons[imu].looseId):
+        if (muons[imu].pfRelIso03_all<0.35 and abs(muons[imu].eta)<2.4 and event.Muon_corrected_pt[imu]>5 and abs(muons[imu].dxy)<0.5 and abs(muons[imu].dz)<1 and muons[imu].sip3d<4 and (muons[imu].isGlobal or (muons[imu].isTracker and muons[imu].nStations>0))):
           muon_v4_temp.SetPtEtaPhiM(event.Muon_corrected_pt[imu], muons[imu].eta, muons[imu].phi, muons[imu].mass)
           additional_looseMuons.append(muon_v4_temp.Clone())
           additional_looseMuons_pdgid.append(muons[imu].pdgId)
           additional_looseMuons_id.append(imu)
 
-    # electron selection: tight (veto) cut-based ID + impact parameter cut
+    # electron selection: loose (veto) cut-based ID + impact parameter cut
     electrons = Collection(event, 'Electron')
     electron_v4_temp=TLorentzVector()
     tightElectrons = []
@@ -139,28 +145,23 @@ class ZZGProducer(Module):
     additional_vetoElectrons_pdgid = []
     additional_vetoElectrons_id = []
     for iele in range(0, event.nElectron):
-      if (electrons[iele].cutBased==4):
-        if (electrons[iele].tightCharge==2 and ((abs(electrons[iele].eta+electrons[iele].deltaEtaSC) <1.4442 and abs(electrons[iele].dxy)<0.05 and abs(electrons[iele].dz<0.1)) or (abs(electrons[iele].eta + electrons[iele].deltaEtaSC)>1.566 and abs(electrons[iele].eta + electrons[iele].deltaEtaSC)<2.4 and abs(electrons[iele].dxy)<0.1 and abs(electrons[iele].dz)<0.2)) and electrons[iele].pt>7):
+      if (electrons[iele].cutBased>1):
+        if (((abs(electrons[iele].eta+electrons[iele].deltaEtaSC) <1.479 and abs(electrons[iele].dxy)<0.05 and abs(electrons[iele].dz<0.1)) or (abs(electrons[iele].eta + electrons[iele].deltaEtaSC)>1.479 and abs(electrons[iele].eta + electrons[iele].deltaEtaSC)<2.5 and abs(electrons[iele].dxy)<0.1 and abs(electrons[iele].dz)<0.2)) and electrons[iele].pt>7):
           electron_v4_temp.SetPtEtaPhiM(electrons[iele].pt, electrons[iele].eta, electrons[iele].phi, electrons[iele].mass)
           tightElectrons.append(electron_v4_temp.Clone())
           tightElectrons_pdgid.append(electrons[iele].pdgId)
           tightElectrons_id.append(iele)
       elif (electrons[iele].cutBased==1):
-        if (((abs(electrons[iele].eta+electrons[iele].deltaEtaSC) <1.4442 and abs(electrons[iele].dxy)<0.05 and abs(electrons[iele].dz<0.1)) or (abs(electrons[iele].eta + electrons[iele].deltaEtaSC)>1.566 and abs(electrons[iele].eta + electrons[iele].deltaEtaSC)<2.4 and abs(electrons[iele].dxy)<0.1 and abs(electrons[iele].dz)<0.2)) and electrons[iele].pt>7):
+        if (((abs(electrons[iele].eta+electrons[iele].deltaEtaSC) <1.479 and abs(electrons[iele].dxy)<0.05 and abs(electrons[iele].dz<0.1)) or (abs(electrons[iele].eta + electrons[iele].deltaEtaSC)>1.479 and abs(electrons[iele].eta + electrons[iele].deltaEtaSC)<2.5 and abs(electrons[iele].dxy)<0.1 and abs(electrons[iele].dz)<0.2)) and electrons[iele].pt>7):
           electron_v4_temp.SetPtEtaPhiM(electrons[iele].pt, electrons[iele].eta, electrons[iele].phi, electrons[iele].mass)
           additional_vetoElectrons.append(electron_v4_temp.Clone())
           additional_vetoElectrons_pdgid.append(electrons[iele].pdgId)
           additional_vetoElectrons_id.append(iele)
 
-    # https://twiki.cern.ch/twiki/bin/view/CMS/BtagRecommendation106XUL17
     # tight ak4 jets, 2016 (111=7), 2017/2018 (110=6), medium B-tag WP
-    # DeepCSV=(nanoaod btagDeepB) loose: 0.1355, medium: 0.4506, tight: 0.7738
-    # DeepFlavor=(nanoaod btagDeepFlavB) loose: 0.0532, medium: 0.3040, tight: 0.7476
-
-    # c-jet tag is based on two-D cuts, medium DeepJet WP:
-    # CvsL=btagDeepFlavCvL: 0.085, CvsB=btagDeepFlavCvB: 0.34
-    # c-tag not available in NANOAOD yet
+    # https://twiki.cern.ch/twiki/bin/viewauth/CMS/BtagRecommendation106XUL17
     jets = Collection(event, 'Jet')
+    tightJets_id = []
     tightJets_nob_CSVloose_id = []
     tightJets_b_CSVloose_id = []
     tightJets_nob_CSVmedium_id = []
@@ -178,46 +179,74 @@ class ZZGProducer(Module):
     for ijet in range(0, event.nJet):
       if self.year=="2016":
         if jets[ijet].jetId==7 and jets[ijet].pt>30 and abs(jets[ijet].eta)<4.7: 
-          if (jets[ijet].btagCSVV2 > 0.9693):
-            tightJets_b_CSVtight_id.append(ijet)
-          else:tightJets_nob_CSVtight_id.append(ijet)
-          if (jets[ijet].btagCSVV2 > 0.8838):
-            tightJets_b_CSVmedium_id.append(ijet)
-          else:tightJets_nob_CSVmedium_id.append(ijet)
-          if (jets[ijet].btagCSVV2 > 0.5803):
-            tightJets_b_CSVloose_id.append(ijet)
-          else:tightJets_nob_CSVloose_id.append(ijet)
-          if (jets[ijet].btagDeepB > 0.8001):
-            tightJets_b_DeepCSVtight_id.append(ijet)
-          else:tightJets_nob_DeepCSVtight_id.append(ijet)
-          if (jets[ijet].btagDeepB > 0.4941):
-            tightJets_b_DeepCSVmedium_id.append(ijet)
-          else:tightJets_nob_DeepCSVmedium_id.append(ijet)
-          if (jets[ijet].btagDeepB > 0.1522):
-            tightJets_b_DeepCSVloose_id.append(ijet)
-          else:tightJets_nob_DeepCSVloose_id.append(ijet)
+	  tightJets_id.append(ijet)
+	  if abs(jets[ijet].eta)<2.4:
+            if (jets[ijet].btagDeepB > 0.8953):
+              tightJets_b_CSVtight_id.append(ijet)
+            else:tightJets_nob_CSVtight_id.append(ijet)
+            if (jets[ijet].btagDeepB > 0.6321):
+              tightJets_b_CSVmedium_id.append(ijet)
+            else:tightJets_nob_CSVmedium_id.append(ijet)
+            if (jets[ijet].btagDeepB > 0.2217):
+              tightJets_b_CSVloose_id.append(ijet)
+            else:tightJets_nob_CSVloose_id.append(ijet)
+            if (jets[ijet].btagDeepFlavB > 0.7221):
+              tightJets_b_DeepCSVtight_id.append(ijet)
+            else:tightJets_nob_DeepCSVtight_id.append(ijet)
+            if (jets[ijet].btagDeepFlavB > 0.3093):
+              tightJets_b_DeepCSVmedium_id.append(ijet)
+            else:tightJets_nob_DeepCSVmedium_id.append(ijet)
+            if (jets[ijet].btagDeepFlavB > 0.0614):
+              tightJets_b_DeepCSVloose_id.append(ijet)
+            else:tightJets_nob_DeepCSVloose_id.append(ijet)
 
-      elif (self.year=="2017" or self.year=="2018"):
+      if (self.year=="2017"):
 	if jets[ijet].jetId==6 and jets[ijet].pt>30 and abs(jets[ijet].eta)<4.7:
-          if (jets[ijet].btagCSVV2 > 0.9693):
-            tightJets_b_CSVtight_id.append(ijet)
-          else:tightJets_nob_CSVtight_id.append(ijet)
-          if (jets[ijet].btagCSVV2 > 0.8838):
-            tightJets_b_CSVmedium_id.append(ijet)
-          else:tightJets_nob_CSVmedium_id.append(ijet)
-          if (jets[ijet].btagCSVV2 > 0.5803):
-            tightJets_b_CSVloose_id.append(ijet)
-          else:tightJets_nob_CSVloose_id.append(ijet)
-          if (jets[ijet].btagDeepB > 0.7738):
-            tightJets_b_DeepCSVtight_id.append(ijet)
-          else:tightJets_nob_DeepCSVtight_id.append(ijet)
-          if (jets[ijet].btagDeepB > 0.4506):
-            tightJets_b_DeepCSVmedium_id.append(ijet)
-          else:tightJets_nob_DeepCSVmedium_id.append(ijet)
-          if (jets[ijet].btagDeepB > 0.1355):
-            tightJets_b_DeepCSVloose_id.append(ijet)
-          else:tightJets_nob_DeepCSVloose_id.append(ijet)
+	  tightJets_id.append(ijet)
+	  if abs(jets[ijet].eta)<2.4:
+            if (jets[ijet].btagDeepB > 0.7738):
+              tightJets_b_CSVtight_id.append(ijet)
+            else:tightJets_nob_CSVtight_id.append(ijet)
+            if (jets[ijet].btagDeepB > 0.4506):
+              tightJets_b_CSVmedium_id.append(ijet)
+            else:tightJets_nob_CSVmedium_id.append(ijet)
+            if (jets[ijet].btagDeepB > 0.1355):
+              tightJets_b_CSVloose_id.append(ijet)
+            else:tightJets_nob_CSVloose_id.append(ijet)
+            if (jets[ijet].btagDeepFlavB > 0.7476):
+              tightJets_b_DeepCSVtight_id.append(ijet)
+            else:tightJets_nob_DeepCSVtight_id.append(ijet)
+            if (jets[ijet].btagDeepFlavB > 0.3040):
+              tightJets_b_DeepCSVmedium_id.append(ijet)
+            else:tightJets_nob_DeepCSVmedium_id.append(ijet)
+            if (jets[ijet].btagDeepFlavB > 0.0532):
+              tightJets_b_DeepCSVloose_id.append(ijet)
+            else:tightJets_nob_DeepCSVloose_id.append(ijet)
 
+      if (self.year=="2018"):
+	if jets[ijet].jetId==6 and jets[ijet].pt>30 and abs(jets[ijet].eta)<4.7:
+	  tightJets_id.append(ijet)
+	  if abs(jets[ijet].eta)<2.4:
+            if (jets[ijet].btagDeepB > 0.7665):
+              tightJets_b_CSVtight_id.append(ijet)
+            else:tightJets_nob_CSVtight_id.append(ijet)
+            if (jets[ijet].btagDeepB > 0.4168):
+              tightJets_b_CSVmedium_id.append(ijet)
+            else:tightJets_nob_CSVmedium_id.append(ijet)
+            if (jets[ijet].btagDeepB > 0.1208):
+              tightJets_b_CSVloose_id.append(ijet)
+            else:tightJets_nob_CSVloose_id.append(ijet)
+            if (jets[ijet].btagDeepFlavB > 0.7100):
+              tightJets_b_DeepCSVtight_id.append(ijet)
+            else:tightJets_nob_DeepCSVtight_id.append(ijet)
+            if (jets[ijet].btagDeepFlavB > 0.2783):
+              tightJets_b_DeepCSVmedium_id.append(ijet)
+            else:tightJets_nob_DeepCSVmedium_id.append(ijet)
+            if (jets[ijet].btagDeepFlavB > 0.0490):
+              tightJets_b_DeepCSVloose_id.append(ijet)
+            else:tightJets_nob_DeepCSVloose_id.append(ijet)
+
+    tightJets_id.extend(np.zeros(event.nJet-len(tightJets_id),int)-1)
     tightJets_b_CSVtight_id.extend(np.zeros(event.nJet-len(tightJets_b_CSVtight_id),int)-1)
     tightJets_nob_CSVtight_id.extend(np.zeros(event.nJet-len(tightJets_nob_CSVtight_id),int)-1)
     tightJets_b_CSVmedium_id.extend(np.zeros(event.nJet-len(tightJets_b_CSVmedium_id),int)-1)
@@ -231,6 +260,7 @@ class ZZGProducer(Module):
     tightJets_b_DeepCSVloose_id.extend(np.zeros(event.nJet-len(tightJets_b_DeepCSVloose_id),int)-1)
     tightJets_nob_DeepCSVloose_id.extend(np.zeros(event.nJet-len(tightJets_nob_DeepCSVloose_id),int)-1)
     
+    self.out.fillBranch("tightJets_id",tightJets_id)
     self.out.fillBranch("tightJets_nob_CSVloose_id",tightJets_nob_CSVloose_id)
     self.out.fillBranch("tightJets_b_CSVloose_id",tightJets_b_CSVloose_id)
     self.out.fillBranch("tightJets_nob_CSVmedium_id",tightJets_nob_CSVmedium_id)
@@ -278,7 +308,8 @@ class ZZGProducer(Module):
     if WZ_nb and (tightLeptons[0]+tightLeptons[1]).M()>4 and (tightLeptons[2]+tightLeptons[1]).M()>4 and (tightLeptons[0]+tightLeptons[2]).M()>4:
       WZ_leptons=True
     
-    if WZ_leptons and event.MET_pt>30:
+#    if WZ_leptons and event.MET_pt>30:
+    if WZ_leptons and ((self.is_mc and event.MET_T1Smear_pt>30) or (event.MET_T1_pt>30 and (not (self.is_mc)))):
       WZ_MET=True
 
     if WZ_MET:
@@ -322,7 +353,7 @@ class ZZGProducer(Module):
             WZ_wl_id=tightMuons_id[1]
 
       # 2 muons case
-      if len(tightElectrons)==1 and (tightMuons_pdgid[0]-tightMuons_pdgid[1])==0:
+      if len(tightElectrons)==1 and (tightMuons_pdgid[0]+tightMuons_pdgid[1])==0:
 	if abs((tightMuons[0]+tightMuons[1]).M()-91.1876)<15:
 	  WZ_region=2
 	  WZ_zl1_id=tightMuons_id[0]
@@ -330,7 +361,7 @@ class ZZGProducer(Module):
 	  WZ_wl_id=tightElectrons_id[0]
 
       # 1 muon case
-      if len(tightElectrons)==2 and (tightElectrons_pdgid[0]-tightElectrons_pdgid[1])==0:
+      if len(tightElectrons)==2 and (tightElectrons_pdgid[0]+tightElectrons_pdgid[1])==0:
 	if abs((tightElectrons[0]+tightElectrons[1]).M()-91.1876)<15:
 	  WZ_region=3
 	  WZ_zl1_id=tightElectrons_id[0]
@@ -414,28 +445,28 @@ class ZZGProducer(Module):
 #    if tightJets_b_DeepCSVmedium_id[0]>-1 and tightJets_nob_DeepCSVmedium_id[0]>-1:
 #      ttZ_1b=True
 
-    if (len(tightElectrons) + len(tightMuons) ==4):
+    if ((len(tightElectrons) + len(tightMuons)) ==4):
       ZZ_nl=True
 
     # 4 ele case: at least one ele with pt>20, at least 2 eles with pt>12
-    if ZZ_nl and len(tightMuons)==0 and tightElectrons[0].Pt()>20 and tightElectrons[1].Pt()>12 and (tightElectrons_pdgid[0]+tightElectrons_pdgid[1]+tightElectrons_pdgid[2]+tightElectrons_pdgid[3] ==0):
+    if ZZ_nl and len(tightMuons)==0 and tightElectrons[0].Pt()>20 and tightElectrons[1].Pt()>12 and (tightElectrons_pdgid[0]+tightElectrons_pdgid[1]+tightElectrons_pdgid[2]+tightElectrons_pdgid[3])==0:
       ZZ_region=1
 
     # 2mu-2ele case: at least one lep with pt>20, at least 2 leps with pt>12
-    if ZZ_nl and len(tightMuons)==2 and tightLeptons[0].Pt()>20 and tightLeptons[1].Pt()>12 and (tightMuons_pdgid[0]+tightMuons_pdgid[1]==0) and (tightElectrons_pdgid[0]+tightElectrons_pdgid[1]==0):
+    if ZZ_nl and len(tightMuons)==2 and tightLeptons[0].Pt()>20 and tightLeptons[1].Pt()>12 and (tightMuons_pdgid[0]+tightMuons_pdgid[1])==0 and (tightElectrons_pdgid[0]+tightElectrons_pdgid[1])==0:
       ZZ_region=2
 
     # 4 muon case: at least one muon with pt>20, at least 2 muon with pt>10
-    if ZZ_nl and len(tightMuons)==4 and (tightMuons[0].Pt()>20 and tightMuons[1].Pt()>10) and (tightMuons_pdgid[0]+tightMuons_pdgid[1]+tightMuons_pdgid[2]+tightMuons_pdgid[3]==0):
+    if ZZ_nl and len(tightMuons)==4 and tightMuons[0].Pt()>20 and tightMuons[1].Pt()>10 and (tightMuons_pdgid[0]+tightMuons_pdgid[1]+tightMuons_pdgid[2]+tightMuons_pdgid[3])==0:
       ZZ_region=3
 
     # require DeltaR(l1,l2)>0.02, following ZZto4L
     if ZZ_nl and (tightLeptons[0].DeltaR(tightLeptons[1])>0.02 and tightLeptons[0].DeltaR(tightLeptons[2])>0.02 and tightLeptons[0].DeltaR(tightLeptons[3])>0.02 and tightLeptons[1].DeltaR(tightLeptons[2])>0.02 and tightLeptons[1].DeltaR(tightLeptons[3])>0.02 and tightLeptons[2].DeltaR(tightLeptons[3])>0.02):
       ZZ_drll=True
 
-    # require mll>4 regardless the flavor and charge
-    if ZZ_nl and ((tightLeptons[0]+tightLeptons[1]).M()>4 and (tightLeptons[0]+tightLeptons[2]).M()>4 and (tightLeptons[0]+tightLeptons[3]).M()>4 and (tightLeptons[1]+tightLeptons[2]).M()>4 and (tightLeptons[1]+tightLeptons[3]).M()>4 and (tightLeptons[2]+tightLeptons[3]).M()>4):
-      ZZ_mll=True
+#    # require mll>4 regardless the flavor and charge
+#    if ZZ_nl and ((tightLeptons[0]+tightLeptons[1]).M()>4 and (tightLeptons[0]+tightLeptons[2]).M()>4 and (tightLeptons[0]+tightLeptons[3]).M()>4 and (tightLeptons[1]+tightLeptons[2]).M()>4 and (tightLeptons[1]+tightLeptons[3]).M()>4 and (tightLeptons[2]+tightLeptons[3]).M()>4):
+#      ZZ_mll=True
 
     # require DeltaR(ele, mu)>0.05 to remove spurious ghost leptons formed from ambiguities in track reconstruction, following ZZto4L
     if ZZ_nl and len(tightMuons)==2:
@@ -459,12 +490,24 @@ class ZZGProducer(Module):
     ZZ_Z1_l2_id=-1
     ZZ_Z2_l1_id=-1
     ZZ_Z2_l2_id=-1
+    Z1_l1_pdgId=-99
+    Z1_l2_pdgId=-99
+    Z2_l1_pdgId=-99
+    Z2_l2_pdgId=-99
     ZZ_SR=-1
 
     # 2 muons and 2 eles case
-    if ZZ_nl and ZZ_region>0 and len(tightMuons)==2:
+    if ZZ_region==2:
       if ((tightMuons[0]+tightMuons[1]).M()>4 and (tightMuons[0]+tightMuons[1]).M()<120 and (tightElectrons[0]+tightElectrons[1]).M()>4 and (tightElectrons[0]+tightElectrons[1]).M()<120):
         ZZ_2Zmass=True
+      # all opposite charge pair lepton with mll>4 GeV
+      if sign(tightElectrons_pdgid[0])+sign(tightMuons_pdgid[0])==0:
+	if (tightElectrons[0]+tightMuons[0]).M()>4 and (tightElectrons[1]+tightMuons[1]).M()>4:
+	  ZZ_mll=True
+      else:
+	if (tightElectrons[0]+tightMuons[1]).M()>4 and (tightElectrons[1]+tightMuons[0]).M()>4:
+          ZZ_mll=True
+
       if abs((tightMuons[0]+tightMuons[1]).M()-91.1876) < abs((tightElectrons[0]+tightElectrons[1]).M()-91.1876):
         Z1=tightMuons[0]+tightMuons[1]
         Z2=tightElectrons[0]+tightElectrons[1]
@@ -478,10 +521,10 @@ class ZZGProducer(Module):
 	ZZ_Z1_l2_id = tightMuons_id[1]
 	ZZ_Z2_l1_id = tightElectrons_id[0]
 	ZZ_Z2_l2_id = tightElectrons_id[1]
-        self.out.fillBranch("Z1_l1_pdgId", tightMuons_pdgid[0])
-        self.out.fillBranch("Z1_l2_pdgId", tightMuons_pdgid[1])
-        self.out.fillBranch("Z2_l1_pdgId", tightElectrons_pdgid[0])
-        self.out.fillBranch("Z2_l2_pdgId", tightElectrons_pdgid[1])
+	Z1_l1_pdgId = tightMuons_pdgid[0]
+	Z1_l2_pdgId = tightMuons_pdgid[1]
+	Z2_l1_pdgId = tightElectrons_pdgid[0]
+	Z2_l2_pdgId = tightElectrons_pdgid[1]
       else:
         Z1=tightElectrons[0]+tightElectrons[1]
         Z2=tightMuons[0]+tightMuons[1]
@@ -495,10 +538,10 @@ class ZZGProducer(Module):
 	ZZ_Z1_l2_id = tightElectrons_id[1]
 	ZZ_Z2_l1_id = tightMuons_id[0]
 	ZZ_Z2_l2_id = tightMuons_id[1]
-        self.out.fillBranch("Z1_l1_pdgId", tightElectrons_pdgid[0])
-        self.out.fillBranch("Z1_l2_pdgId", tightElectrons_pdgid[1])
-        self.out.fillBranch("Z2_l1_pdgId", tightMuons_pdgid[0])
-        self.out.fillBranch("Z2_l2_pdgId", tightMuons_pdgid[1])
+	Z1_l1_pdgId = tightElectrons_pdgid[0]
+        Z1_l2_pdgId = tightElectrons_pdgid[1]
+        Z2_l1_pdgId = tightMuons_pdgid[0]
+        Z2_l2_pdgId = tightMuons_pdgid[1]
         
     pass_Z1_basic_1stpair = False
     pass_Z2_basic_1stpair = False
@@ -506,16 +549,19 @@ class ZZGProducer(Module):
     pass_Z2_basic_2ndpair = False
 
     # 4 muons case
-    if ZZ_nl and ZZ_region>0 and len(tightElectrons)==0:
+    if ZZ_region==3:
       ZZ_Z1_id = 26
       ZZ_Z2_id = 26
       if tightMuons_pdgid[0]+tightMuons_pdgid[1] == 0:
         if tightMuons_pdgid[0]+tightMuons_pdgid[2] == 0:
+	  if (tightMuons[0]+tightMuons[1]).M()>4 and (tightMuons[0]+tightMuons[2]).M()>4 and (tightMuons[1]+tightMuons[3]).M()>4 and (tightMuons[2]+tightMuons[3]).M()>4:ZZ_mll=True
           pass_Z1_basic_1stpair = (tightMuons[0]+tightMuons[1]).M()>4 and (tightMuons[0]+tightMuons[1]).M()<120
           pass_Z2_basic_1stpair = (tightMuons[2]+tightMuons[3]).M()>4 and (tightMuons[2]+tightMuons[3]).M()<120
           pass_Z1_basic_2ndpair = (tightMuons[0]+tightMuons[2]).M()>4 and (tightMuons[0]+tightMuons[2]).M()<120
           pass_Z2_basic_2ndpair = (tightMuons[1]+tightMuons[3]).M()>4 and (tightMuons[1]+tightMuons[3]).M()<120
-	  ZZ_2Zmass=True
+
+	  if (pass_Z1_basic_1stpair and pass_Z2_basic_1stpair) or (pass_Z1_basic_2ndpair and pass_Z2_basic_2ndpair):
+	    ZZ_2Zmass=True
           if pass_Z1_basic_1stpair and pass_Z2_basic_1stpair:
             if pass_Z1_basic_2ndpair and pass_Z2_basic_2ndpair:
               if min(abs((tightMuons[0]+tightMuons[1]).M()-91.1876), abs((tightMuons[2]+tightMuons[3]).M()-91.1876)) < min(abs((tightMuons[0]+tightMuons[2]).M()-91.1876), abs((tightMuons[1]+tightMuons[3]).M()-91.1876)):
@@ -530,10 +576,10 @@ class ZZGProducer(Module):
 	          ZZ_Z1_l2_id = tightMuons_id[1]
 	          ZZ_Z2_l1_id = tightMuons_id[2]
 	          ZZ_Z2_l2_id = tightMuons_id[3]
-                  self.out.fillBranch("Z1_l1_pdgId", tightMuons_pdgid[0])
-                  self.out.fillBranch("Z1_l2_pdgId", tightMuons_pdgid[1])
-                  self.out.fillBranch("Z2_l1_pdgId", tightMuons_pdgid[2])
-                  self.out.fillBranch("Z2_l2_pdgId", tightMuons_pdgid[3])
+		  Z1_l1_pdgId = tightMuons_pdgid[0]
+		  Z1_l2_pdgId = tightMuons_pdgid[1]
+		  Z2_l1_pdgId = tightMuons_pdgid[2]
+		  Z2_l2_pdgId = tightMuons_pdgid[3]
                 else:
                   Z1 = tightMuons[2]+tightMuons[3]
                   Z2 = tightMuons[0]+tightMuons[1]
@@ -545,10 +591,10 @@ class ZZGProducer(Module):
 	          ZZ_Z1_l2_id = tightMuons_id[3]
 	          ZZ_Z2_l1_id = tightMuons_id[0]
 	          ZZ_Z2_l2_id = tightMuons_id[1]
-                  self.out.fillBranch("Z1_l1_pdgId", tightMuons_pdgid[2])
-                  self.out.fillBranch("Z1_l2_pdgId", tightMuons_pdgid[3])
-                  self.out.fillBranch("Z2_l1_pdgId", tightMuons_pdgid[0])
-                  self.out.fillBranch("Z2_l2_pdgId", tightMuons_pdgid[1])
+		  Z1_l1_pdgId = tightMuons_pdgid[2]
+		  Z1_l2_pdgId = tightMuons_pdgid[3]
+		  Z2_l1_pdgId = tightMuons_pdgid[0]
+		  Z2_l2_pdgId = tightMuons_pdgid[1]
               else:
 
                 if abs((tightMuons[0]+tightMuons[2]).M()-91.1876) < abs((tightMuons[1]+tightMuons[3]).M()-91.1876):
@@ -562,10 +608,10 @@ class ZZGProducer(Module):
 	          ZZ_Z1_l2_id = tightMuons_id[2]
 	          ZZ_Z2_l1_id = tightMuons_id[1]
 	          ZZ_Z2_l2_id = tightMuons_id[3]
-                  self.out.fillBranch("Z1_l1_pdgId", tightMuons_pdgid[0])
-                  self.out.fillBranch("Z1_l2_pdgId", tightMuons_pdgid[2])
-                  self.out.fillBranch("Z2_l1_pdgId", tightMuons_pdgid[1])
-                  self.out.fillBranch("Z2_l2_pdgId", tightMuons_pdgid[3])
+		  Z1_l1_pdgId = tightMuons_pdgid[0]
+		  Z1_l2_pdgId = tightMuons_pdgid[2]
+		  Z2_l1_pdgId = tightMuons_pdgid[1]
+		  Z2_l2_pdgId = tightMuons_pdgid[3]
                 else:
                   Z1 = tightMuons[1]+tightMuons[3]
                   Z2 = tightMuons[0]+tightMuons[2]
@@ -577,10 +623,10 @@ class ZZGProducer(Module):
 	          ZZ_Z1_l2_id = tightMuons_id[3]
 	          ZZ_Z2_l1_id = tightMuons_id[0]
 	          ZZ_Z2_l2_id = tightMuons_id[2]
-                  self.out.fillBranch("Z1_l1_pdgId", tightMuons_pdgid[1])
-                  self.out.fillBranch("Z1_l2_pdgId", tightMuons_pdgid[3])
-                  self.out.fillBranch("Z2_l1_pdgId", tightMuons_pdgid[0])
-                  self.out.fillBranch("Z2_l2_pdgId", tightMuons_pdgid[2])
+		  Z1_l1_pdgId = tightMuons_pdgid[1]
+		  Z1_l2_pdgId = tightMuons_pdgid[3]
+		  Z2_l1_pdgId = tightMuons_pdgid[0]
+		  Z2_l2_pdgId = tightMuons_pdgid[2]
 
             else:
               if abs((tightMuons[0]+tightMuons[1]).M()-91.1876) < abs((tightMuons[2]+tightMuons[3]).M()-91.1876):
@@ -594,10 +640,10 @@ class ZZGProducer(Module):
 	        ZZ_Z1_l2_id = tightMuons_id[1]
 	        ZZ_Z2_l1_id = tightMuons_id[2]
 	        ZZ_Z2_l2_id = tightMuons_id[3]
-                self.out.fillBranch("Z1_l1_pdgId", tightMuons_pdgid[0])
-                self.out.fillBranch("Z1_l2_pdgId", tightMuons_pdgid[1])
-                self.out.fillBranch("Z2_l1_pdgId", tightMuons_pdgid[2])
-                self.out.fillBranch("Z2_l2_pdgId", tightMuons_pdgid[3])
+		Z1_l1_pdgId = tightMuons_pdgid[0]
+		Z1_l2_pdgId = tightMuons_pdgid[1]
+		Z2_l1_pdgId = tightMuons_pdgid[2]
+		Z2_l2_pdgId = tightMuons_pdgid[3]
               else:
                 Z1 = tightMuons[2]+tightMuons[3]
                 Z2 = tightMuons[0]+tightMuons[1]
@@ -609,10 +655,10 @@ class ZZGProducer(Module):
 	        ZZ_Z1_l2_id = tightMuons_id[3]
 	        ZZ_Z2_l1_id = tightMuons_id[0]
 	        ZZ_Z2_l2_id = tightMuons_id[1]
-                self.out.fillBranch("Z1_l1_pdgId", tightMuons_pdgid[2])
-                self.out.fillBranch("Z1_l2_pdgId", tightMuons_pdgid[3])
-                self.out.fillBranch("Z2_l1_pdgId", tightMuons_pdgid[0])
-                self.out.fillBranch("Z2_l2_pdgId", tightMuons_pdgid[1])
+		Z1_l1_pdgId = tightMuons_pdgid[2]
+		Z1_l2_pdgId = tightMuons_pdgid[3]
+		Z2_l1_pdgId = tightMuons_pdgid[0]
+		Z2_l2_pdgId = tightMuons_pdgid[1]
           else:
             if pass_Z1_basic_2ndpair and pass_Z2_basic_2ndpair:
               if abs((tightMuons[0]+tightMuons[2]).M()-91.1876) < abs((tightMuons[1]+tightMuons[3]).M()-91.1876):
@@ -626,10 +672,10 @@ class ZZGProducer(Module):
 	        ZZ_Z1_l2_id = tightMuons_id[2]
 	        ZZ_Z2_l1_id = tightMuons_id[1]
 	        ZZ_Z2_l2_id = tightMuons_id[3]
-                self.out.fillBranch("Z1_l1_pdgId", tightMuons_pdgid[0])
-                self.out.fillBranch("Z1_l2_pdgId", tightMuons_pdgid[2])
-                self.out.fillBranch("Z2_l1_pdgId", tightMuons_pdgid[1])
-                self.out.fillBranch("Z2_l2_pdgId", tightMuons_pdgid[3])
+		Z1_l1_pdgId = tightMuons_pdgid[0]
+		Z1_l2_pdgId = tightMuons_pdgid[2]
+		Z2_l1_pdgId = tightMuons_pdgid[1]
+		Z2_l2_pdgId = tightMuons_pdgid[3]
               else:
                 Z1 = tightMuons[1]+tightMuons[3]
                 Z2 = tightMuons[0]+tightMuons[2]
@@ -641,17 +687,21 @@ class ZZGProducer(Module):
 	        ZZ_Z1_l2_id = tightMuons_id[3]
 	        ZZ_Z2_l1_id = tightMuons_id[0]
 	        ZZ_Z2_l2_id = tightMuons_id[2]
-                self.out.fillBranch("Z1_l1_pdgId", tightMuons_pdgid[1])
-                self.out.fillBranch("Z1_l2_pdgId", tightMuons_pdgid[3])
-                self.out.fillBranch("Z2_l1_pdgId", tightMuons_pdgid[0])
-                self.out.fillBranch("Z2_l2_pdgId", tightMuons_pdgid[2])
+		Z1_l1_pdgId = tightMuons_pdgid[1]
+		Z1_l2_pdgId = tightMuons_pdgid[3]
+		Z2_l1_pdgId = tightMuons_pdgid[0]
+		Z2_l2_pdgId = tightMuons_pdgid[2]
 
         else:
+	  if (tightMuons[0]+tightMuons[1]).M()>4 and (tightMuons[0]+tightMuons[3]).M()>4 and (tightMuons[1]+tightMuons[2]).M()>4 and (tightMuons[2]+tightMuons[3]).M()>4:ZZ_mll=True
           pass_Z1_basic_1stpair = (tightMuons[0]+tightMuons[1]).M()>4 and (tightMuons[0]+tightMuons[1]).M()<120
           pass_Z2_basic_1stpair = (tightMuons[2]+tightMuons[3]).M()>4 and (tightMuons[2]+tightMuons[3]).M()<120
           pass_Z1_basic_2ndpair = (tightMuons[0]+tightMuons[3]).M()>4 and (tightMuons[0]+tightMuons[3]).M()<120
           pass_Z2_basic_2ndpair = (tightMuons[1]+tightMuons[2]).M()>4 and (tightMuons[1]+tightMuons[2]).M()<120
-	  ZZ_2Zmass=True
+
+	  if (pass_Z1_basic_1stpair and pass_Z2_basic_1stpair) or (pass_Z1_basic_2ndpair and pass_Z2_basic_2ndpair):
+            ZZ_2Zmass=True
+
           if pass_Z1_basic_1stpair and pass_Z2_basic_1stpair:
             if pass_Z1_basic_2ndpair and pass_Z2_basic_2ndpair:
               if min(abs((tightMuons[0]+tightMuons[1]).M()-91.1876), abs((tightMuons[2]+tightMuons[3]).M()-91.1876)) < min(abs((tightMuons[0]+tightMuons[3]).M()-91.1876), abs((tightMuons[1]+tightMuons[2]).M()-91.1876)):
@@ -666,10 +716,10 @@ class ZZGProducer(Module):
 	          ZZ_Z1_l2_id = tightMuons_id[1]
 	          ZZ_Z2_l1_id = tightMuons_id[2]
 	          ZZ_Z2_l2_id = tightMuons_id[3]
-                  self.out.fillBranch("Z1_l1_pdgId", tightMuons_pdgid[0])
-                  self.out.fillBranch("Z1_l2_pdgId", tightMuons_pdgid[1])
-                  self.out.fillBranch("Z2_l1_pdgId", tightMuons_pdgid[2])
-                  self.out.fillBranch("Z2_l2_pdgId", tightMuons_pdgid[3])
+		  Z1_l1_pdgId = tightMuons_pdgid[0]
+		  Z1_l2_pdgId = tightMuons_pdgid[1]
+		  Z2_l1_pdgId = tightMuons_pdgid[2]
+		  Z2_l2_pdgId = tightMuons_pdgid[3]
                 else:
                   Z1 = tightMuons[2]+tightMuons[3]
                   Z2 = tightMuons[0]+tightMuons[1]
@@ -681,10 +731,10 @@ class ZZGProducer(Module):
 	          ZZ_Z1_l2_id = tightMuons_id[3]
 	          ZZ_Z2_l1_id = tightMuons_id[0]
 	          ZZ_Z2_l2_id = tightMuons_id[1]
-                  self.out.fillBranch("Z1_l1_pdgId", tightMuons_pdgid[2])
-                  self.out.fillBranch("Z1_l2_pdgId", tightMuons_pdgid[3])
-                  self.out.fillBranch("Z2_l1_pdgId", tightMuons_pdgid[0])
-                  self.out.fillBranch("Z2_l2_pdgId", tightMuons_pdgid[1])
+		  Z1_l1_pdgId = tightMuons_pdgid[2]
+		  Z1_l2_pdgId = tightMuons_pdgid[3]
+		  Z2_l1_pdgId = tightMuons_pdgid[0]
+		  Z2_l2_pdgId = tightMuons_pdgid[1]
               else:
 
                 if abs((tightMuons[0]+tightMuons[3]).M()-91.1876) < abs((tightMuons[1]+tightMuons[2]).M()-91.1876):
@@ -698,10 +748,10 @@ class ZZGProducer(Module):
 	          ZZ_Z1_l2_id = tightMuons_id[3]
 	          ZZ_Z2_l1_id = tightMuons_id[1]
 	          ZZ_Z2_l2_id = tightMuons_id[2]
-                  self.out.fillBranch("Z1_l1_pdgId", tightMuons_pdgid[0])
-                  self.out.fillBranch("Z1_l2_pdgId", tightMuons_pdgid[3])
-                  self.out.fillBranch("Z2_l1_pdgId", tightMuons_pdgid[1])
-                  self.out.fillBranch("Z2_l2_pdgId", tightMuons_pdgid[2])
+		  Z1_l1_pdgId = tightMuons_pdgid[0]
+		  Z1_l2_pdgId = tightMuons_pdgid[3]
+		  Z2_l1_pdgId = tightMuons_pdgid[1]
+		  Z2_l2_pdgId = tightMuons_pdgid[2]
                 else:
                   Z1 = tightMuons[1]+tightMuons[2]
                   Z2 = tightMuons[0]+tightMuons[3]
@@ -713,10 +763,10 @@ class ZZGProducer(Module):
 	          ZZ_Z1_l2_id = tightMuons_id[2]
 	          ZZ_Z2_l1_id = tightMuons_id[0]
 	          ZZ_Z2_l2_id = tightMuons_id[3]
-                  self.out.fillBranch("Z1_l1_pdgId", tightMuons_pdgid[1])
-                  self.out.fillBranch("Z1_l2_pdgId", tightMuons_pdgid[2])
-                  self.out.fillBranch("Z2_l1_pdgId", tightMuons_pdgid[0])
-                  self.out.fillBranch("Z2_l2_pdgId", tightMuons_pdgid[3])
+		  Z1_l1_pdgId = tightMuons_pdgid[1]
+		  Z1_l2_pdgId = tightMuons_pdgid[2]
+		  Z2_l1_pdgId = tightMuons_pdgid[0]
+		  Z2_l2_pdgId = tightMuons_pdgid[3]
 
             else:
               if abs((tightMuons[0]+tightMuons[1]).M()-91.1876) < abs((tightMuons[2]+tightMuons[3]).M()-91.1876):
@@ -730,10 +780,10 @@ class ZZGProducer(Module):
 	        ZZ_Z1_l2_id = tightMuons_id[1]
 	        ZZ_Z2_l1_id = tightMuons_id[2]
 	        ZZ_Z2_l2_id = tightMuons_id[3]
-                self.out.fillBranch("Z1_l1_pdgId", tightMuons_pdgid[0])
-                self.out.fillBranch("Z1_l2_pdgId", tightMuons_pdgid[1])
-                self.out.fillBranch("Z2_l1_pdgId", tightMuons_pdgid[2])
-                self.out.fillBranch("Z2_l2_pdgId", tightMuons_pdgid[3])
+		Z1_l1_pdgId = tightMuons_pdgid[0]
+		Z1_l1_pdgId = tightMuons_pdgid[1]
+		Z2_l1_pdgId = tightMuons_pdgid[2]
+		Z2_l1_pdgId = tightMuons_pdgid[3]
               else:
                 Z1 = tightMuons[2]+tightMuons[3]
                 Z2 = tightMuons[0]+tightMuons[1]
@@ -745,10 +795,10 @@ class ZZGProducer(Module):
 	        ZZ_Z1_l2_id = tightMuons_id[3]
 	        ZZ_Z2_l1_id = tightMuons_id[0]
 	        ZZ_Z2_l2_id = tightMuons_id[1]
-                self.out.fillBranch("Z1_l1_pdgId", tightMuons_pdgid[2])
-                self.out.fillBranch("Z1_l2_pdgId", tightMuons_pdgid[3])
-                self.out.fillBranch("Z2_l1_pdgId", tightMuons_pdgid[0])
-                self.out.fillBranch("Z2_l2_pdgId", tightMuons_pdgid[1])
+		Z1_l1_pdgId = tightMuons_pdgid[2]
+		Z1_l1_pdgId = tightMuons_pdgid[3]
+		Z2_l1_pdgId = tightMuons_pdgid[0]
+		Z2_l1_pdgId = tightMuons_pdgid[1]
           else:
             if pass_Z1_basic_2ndpair and pass_Z2_basic_2ndpair:
               if abs((tightMuons[0]+tightMuons[3]).M()-91.1876) < abs((tightMuons[1]+tightMuons[2]).M()-91.1876):
@@ -762,10 +812,10 @@ class ZZGProducer(Module):
 	        ZZ_Z1_l2_id = tightMuons_id[3]
 	        ZZ_Z2_l1_id = tightMuons_id[1]
 	        ZZ_Z2_l2_id = tightMuons_id[2]
-                self.out.fillBranch("Z1_l1_pdgId", tightMuons_pdgid[0])
-                self.out.fillBranch("Z1_l2_pdgId", tightMuons_pdgid[3])
-                self.out.fillBranch("Z2_l1_pdgId", tightMuons_pdgid[1])
-                self.out.fillBranch("Z2_l2_pdgId", tightMuons_pdgid[2])
+		Z1_l1_pdgId = tightMuons_pdgid[0]
+		Z1_l1_pdgId = tightMuons_pdgid[3]
+		Z2_l1_pdgId = tightMuons_pdgid[1]
+		Z2_l1_pdgId = tightMuons_pdgid[2]
               else:
                 Z1 = tightMuons[1]+tightMuons[2]
                 Z2 = tightMuons[0]+tightMuons[3]
@@ -777,17 +827,19 @@ class ZZGProducer(Module):
 	        ZZ_Z1_l2_id = tightMuons_id[2]
 	        ZZ_Z2_l1_id = tightMuons_id[0]
 	        ZZ_Z2_l2_id = tightMuons_id[3]
-                self.out.fillBranch("Z1_l1_pdgId", tightMuons_pdgid[1])
-                self.out.fillBranch("Z1_l2_pdgId", tightMuons_pdgid[2])
-                self.out.fillBranch("Z2_l1_pdgId", tightMuons_pdgid[0])
-                self.out.fillBranch("Z2_l2_pdgId", tightMuons_pdgid[3])
+		Z1_l1_pdgId = tightMuons_pdgid[1]
+		Z1_l1_pdgId = tightMuons_pdgid[2]
+		Z2_l1_pdgId = tightMuons_pdgid[0]
+		Z2_l1_pdgId = tightMuons_pdgid[3]
 
       else: 
+	if (tightMuons[0]+tightMuons[2]).M()>4 and (tightMuons[0]+tightMuons[3]).M()>4 and (tightMuons[1]+tightMuons[2]).M()>4 and (tightMuons[1]+tightMuons[3]).M()>4:ZZ_mll=True
         pass_Z1_basic_1stpair = (tightMuons[0]+tightMuons[2]).M()>4 and (tightMuons[0]+tightMuons[2]).M()<120
         pass_Z2_basic_1stpair = (tightMuons[1]+tightMuons[3]).M()>4 and (tightMuons[1]+tightMuons[3]).M()<120
         pass_Z1_basic_2ndpair = (tightMuons[0]+tightMuons[3]).M()>4 and (tightMuons[0]+tightMuons[3]).M()<120
         pass_Z2_basic_2ndpair = (tightMuons[1]+tightMuons[2]).M()>4 and (tightMuons[1]+tightMuons[2]).M()<120
-	ZZ_2Zmass=True
+	if (pass_Z1_basic_1stpair and pass_Z2_basic_1stpair) or (pass_Z1_basic_2ndpair and pass_Z2_basic_2ndpair):
+            ZZ_2Zmass=True
         if pass_Z1_basic_1stpair and pass_Z2_basic_1stpair:
           if pass_Z1_basic_2ndpair and pass_Z2_basic_2ndpair:
             if min(abs((tightMuons[0]+tightMuons[2]).M()-91.1876), abs((tightMuons[1]+tightMuons[3]).M()-91.1876)) < min(abs((tightMuons[0]+tightMuons[3]).M()-91.1876), abs((tightMuons[1]+tightMuons[2]).M()-91.1876)):
@@ -802,10 +854,10 @@ class ZZGProducer(Module):
 	        ZZ_Z1_l2_id = tightMuons_id[2]
 	        ZZ_Z2_l1_id = tightMuons_id[1]
 	        ZZ_Z2_l2_id = tightMuons_id[3]
-                self.out.fillBranch("Z1_l1_pdgId", tightMuons_pdgid[0])
-                self.out.fillBranch("Z1_l2_pdgId", tightMuons_pdgid[2])
-                self.out.fillBranch("Z2_l1_pdgId", tightMuons_pdgid[1])
-                self.out.fillBranch("Z2_l2_pdgId", tightMuons_pdgid[3])
+		Z1_l1_pdgId = tightMuons_pdgid[0]
+		Z1_l2_pdgId = tightMuons_pdgid[2]
+		Z2_l1_pdgId = tightMuons_pdgid[1]
+		Z2_l2_pdgId = tightMuons_pdgid[3]
               else:
                 Z1 = tightMuons[1]+tightMuons[3]
                 Z2 = tightMuons[0]+tightMuons[2]
@@ -817,10 +869,10 @@ class ZZGProducer(Module):
 	        ZZ_Z1_l2_id = tightMuons_id[3]
 	        ZZ_Z2_l1_id = tightMuons_id[0]
 	        ZZ_Z2_l2_id = tightMuons_id[2]
-                self.out.fillBranch("Z1_l1_pdgId", tightMuons_pdgid[1])
-                self.out.fillBranch("Z1_l2_pdgId", tightMuons_pdgid[3])
-                self.out.fillBranch("Z2_l1_pdgId", tightMuons_pdgid[0])
-                self.out.fillBranch("Z2_l2_pdgId", tightMuons_pdgid[2])
+		Z1_l1_pdgId = tightMuons_pdgid[1]
+		Z1_l2_pdgId = tightMuons_pdgid[3]
+		Z2_l1_pdgId = tightMuons_pdgid[0]
+		Z2_l2_pdgId = tightMuons_pdgid[2]
             else:
 
               if abs((tightMuons[0]+tightMuons[3]).M()-91.1876) < abs((tightMuons[1]+tightMuons[2]).M()-91.1876):
@@ -834,10 +886,10 @@ class ZZGProducer(Module):
 	        ZZ_Z1_l2_id = tightMuons_id[3]
 	        ZZ_Z2_l1_id = tightMuons_id[1]
 	        ZZ_Z2_l2_id = tightMuons_id[2]
-                self.out.fillBranch("Z1_l1_pdgId", tightMuons_pdgid[0])
-                self.out.fillBranch("Z1_l2_pdgId", tightMuons_pdgid[3])
-                self.out.fillBranch("Z2_l1_pdgId", tightMuons_pdgid[1])
-                self.out.fillBranch("Z2_l2_pdgId", tightMuons_pdgid[2])
+		Z1_l1_pdgId = tightMuons_pdgid[0]
+		Z1_l2_pdgId = tightMuons_pdgid[3]
+		Z2_l1_pdgId = tightMuons_pdgid[1]
+		Z2_l2_pdgId = tightMuons_pdgid[2]
               else:
                 Z1 = tightMuons[1]+tightMuons[2]
                 Z2 = tightMuons[0]+tightMuons[3]
@@ -849,10 +901,10 @@ class ZZGProducer(Module):
 	        ZZ_Z1_l2_id = tightMuons_id[2]
 	        ZZ_Z2_l1_id = tightMuons_id[0]
 	        ZZ_Z2_l2_id = tightMuons_id[3]
-                self.out.fillBranch("Z1_l1_pdgId", tightMuons_pdgid[1])
-                self.out.fillBranch("Z1_l2_pdgId", tightMuons_pdgid[2])
-                self.out.fillBranch("Z2_l1_pdgId", tightMuons_pdgid[0])
-                self.out.fillBranch("Z2_l2_pdgId", tightMuons_pdgid[3])
+		Z1_l1_pdgId = tightMuons_pdgid[1]
+		Z1_l2_pdgId = tightMuons_pdgid[2]
+		Z2_l1_pdgId = tightMuons_pdgid[0]
+		Z2_l2_pdgId = tightMuons_pdgid[3]
 
           else:
             if abs((tightMuons[0]+tightMuons[2]).M()-91.1876) < abs((tightMuons[1]+tightMuons[3]).M()-91.1876):
@@ -866,10 +918,10 @@ class ZZGProducer(Module):
 	      ZZ_Z1_l2_id = tightMuons_id[2]
 	      ZZ_Z2_l1_id = tightMuons_id[1]
 	      ZZ_Z2_l2_id = tightMuons_id[3]
-              self.out.fillBranch("Z1_l1_pdgId", tightMuons_pdgid[0])
-              self.out.fillBranch("Z1_l2_pdgId", tightMuons_pdgid[2])
-              self.out.fillBranch("Z2_l1_pdgId", tightMuons_pdgid[1])
-              self.out.fillBranch("Z2_l2_pdgId", tightMuons_pdgid[3])
+	      Z1_l1_pdgId = tightMuons_pdgid[0]
+	      Z1_l2_pdgId = tightMuons_pdgid[2]
+	      Z2_l1_pdgId = tightMuons_pdgid[1]
+	      Z2_l2_pdgId = tightMuons_pdgid[3]
             else:
               Z1 = tightMuons[1]+tightMuons[3]
               Z2 = tightMuons[0]+tightMuons[2]
@@ -881,10 +933,10 @@ class ZZGProducer(Module):
 	      ZZ_Z1_l2_id = tightMuons_id[3]
 	      ZZ_Z2_l1_id = tightMuons_id[0]
 	      ZZ_Z2_l2_id = tightMuons_id[2]
-              self.out.fillBranch("Z1_l1_pdgId", tightMuons_pdgid[1])
-              self.out.fillBranch("Z1_l2_pdgId", tightMuons_pdgid[3])
-              self.out.fillBranch("Z2_l1_pdgId", tightMuons_pdgid[0])
-              self.out.fillBranch("Z2_l2_pdgId", tightMuons_pdgid[2])
+	      Z1_l1_pdgId = tightMuons_pdgid[1]
+	      Z1_l2_pdgId = tightMuons_pdgid[3]
+	      Z2_l1_pdgId = tightMuons_pdgid[0]
+	      Z2_l2_pdgId = tightMuons_pdgid[2]
         else:
           if pass_Z1_basic_2ndpair and pass_Z2_basic_2ndpair:
             if abs((tightMuons[0]+tightMuons[3]).M()-91.1876) < abs((tightMuons[1]+tightMuons[2]).M()-91.1876):
@@ -898,10 +950,10 @@ class ZZGProducer(Module):
 	      ZZ_Z1_l2_id = tightMuons_id[3]
 	      ZZ_Z2_l1_id = tightMuons_id[1]
 	      ZZ_Z2_l2_id = tightMuons_id[2]
-              self.out.fillBranch("Z1_l1_pdgId", tightMuons_pdgid[0])
-              self.out.fillBranch("Z1_l2_pdgId", tightMuons_pdgid[3])
-              self.out.fillBranch("Z2_l1_pdgId", tightMuons_pdgid[1])
-              self.out.fillBranch("Z2_l2_pdgId", tightMuons_pdgid[2])
+	      Z1_l1_pdgId = tightMuons_pdgid[0]
+	      Z1_l2_pdgId = tightMuons_pdgid[3]
+	      Z2_l1_pdgId = tightMuons_pdgid[1]
+	      Z2_l2_pdgId = tightMuons_pdgid[2]
             else:
               Z1 = tightMuons[1]+tightMuons[2]
               Z2 = tightMuons[0]+tightMuons[3]
@@ -913,22 +965,27 @@ class ZZGProducer(Module):
 	      ZZ_Z1_l2_id = tightMuons_id[2]
 	      ZZ_Z2_l1_id = tightMuons_id[0]
 	      ZZ_Z2_l2_id = tightMuons_id[3]
-              self.out.fillBranch("Z1_l1_pdgId", tightMuons_pdgid[1])
-              self.out.fillBranch("Z1_l2_pdgId", tightMuons_pdgid[2])
-              self.out.fillBranch("Z2_l1_pdgId", tightMuons_pdgid[0])
-              self.out.fillBranch("Z2_l2_pdgId", tightMuons_pdgid[3])
+	      Z1_l1_pdgId = tightMuons_pdgid[1]
+	      Z1_l2_pdgId = tightMuons_pdgid[2]
+	      Z2_l1_pdgId = tightMuons_pdgid[0]
+	      Z2_l2_pdgId = tightMuons_pdgid[3]
 
     # 4 electrons case
-    if ZZ_nl and ZZ_region>0 and len(tightMuons)==0:
+    if ZZ_region==1:
       ZZ_Z1_id = 22
       ZZ_Z2_id = 22
       if tightElectrons_pdgid[0]+tightElectrons_pdgid[1] == 0:
         if tightElectrons_pdgid[0]+tightElectrons_pdgid[2] == 0:
+	  if (tightElectrons[0]+tightElectrons[1]).M()>4 and (tightElectrons[0]+tightElectrons[2]).M()>4 and (tightElectrons[1]+tightElectrons[3]).M()>4 and (tightElectrons[2]+tightElectrons[3]).M()>4:ZZ_mll=True
+
           pass_Z1_basic_1stpair = (tightElectrons[0]+tightElectrons[1]).M()>4 and (tightElectrons[0]+tightElectrons[1]).M()<120
           pass_Z2_basic_1stpair = (tightElectrons[2]+tightElectrons[3]).M()>4 and (tightElectrons[2]+tightElectrons[3]).M()<120
           pass_Z1_basic_2ndpair = (tightElectrons[0]+tightElectrons[2]).M()>4 and (tightElectrons[0]+tightElectrons[2]).M()<120
           pass_Z2_basic_2ndpair = (tightElectrons[1]+tightElectrons[3]).M()>4 and (tightElectrons[1]+tightElectrons[3]).M()<120
-	  ZZ_2Zmass=True
+
+	  if (pass_Z1_basic_1stpair and pass_Z2_basic_1stpair) or (pass_Z1_basic_2ndpair and pass_Z2_basic_2ndpair):
+            ZZ_2Zmass=True
+
           if pass_Z1_basic_1stpair and pass_Z2_basic_1stpair:
             if pass_Z1_basic_2ndpair and pass_Z2_basic_2ndpair:
               if min(abs((tightElectrons[0]+tightElectrons[1]).M()-91.1876), abs((tightElectrons[2]+tightElectrons[3]).M()-91.1876)) < min(abs((tightElectrons[0]+tightElectrons[2]).M()-91.1876), abs((tightElectrons[1]+tightElectrons[3]).M()-91.1876)):
@@ -943,10 +1000,10 @@ class ZZGProducer(Module):
 	          ZZ_Z1_l2_id = tightElectrons_id[1]
 	          ZZ_Z2_l1_id = tightElectrons_id[2]
 	          ZZ_Z2_l2_id = tightElectrons_id[3]
-                  self.out.fillBranch("Z1_l1_pdgId", tightElectrons_pdgid[0])
-                  self.out.fillBranch("Z1_l2_pdgId", tightElectrons_pdgid[1])
-                  self.out.fillBranch("Z2_l1_pdgId", tightElectrons_pdgid[2])
-                  self.out.fillBranch("Z2_l2_pdgId", tightElectrons_pdgid[3])
+		  Z1_l1_pdgId = tightElectrons_pdgid[0]
+		  Z1_l2_pdgId = tightElectrons_pdgid[1]
+		  Z2_l1_pdgId = tightElectrons_pdgid[2]
+		  Z2_l2_pdgId = tightElectrons_pdgid[3]
                 else:
                   Z1 = tightElectrons[2]+tightElectrons[3]
                   Z2 = tightElectrons[0]+tightElectrons[1]
@@ -958,10 +1015,10 @@ class ZZGProducer(Module):
 	          ZZ_Z1_l2_id = tightElectrons_id[3]
 	          ZZ_Z2_l1_id = tightElectrons_id[0]
 	          ZZ_Z2_l2_id = tightElectrons_id[1]
-                  self.out.fillBranch("Z1_l1_pdgId", tightElectrons_pdgid[2])
-                  self.out.fillBranch("Z1_l2_pdgId", tightElectrons_pdgid[3])
-                  self.out.fillBranch("Z2_l1_pdgId", tightElectrons_pdgid[0])
-                  self.out.fillBranch("Z2_l2_pdgId", tightElectrons_pdgid[1])
+		  Z1_l1_pdgId = tightElectrons_pdgid[2]
+		  Z1_l2_pdgId = tightElectrons_pdgid[3]
+		  Z2_l1_pdgId = tightElectrons_pdgid[0]
+		  Z2_l2_pdgId = tightElectrons_pdgid[1]
               else:
 
                 if abs((tightElectrons[0]+tightElectrons[2]).M()-91.1876) < abs((tightElectrons[1]+tightElectrons[3]).M()-91.1876):
@@ -975,10 +1032,10 @@ class ZZGProducer(Module):
 	          ZZ_Z1_l2_id = tightElectrons_id[2]
 	          ZZ_Z2_l1_id = tightElectrons_id[1]
 	          ZZ_Z2_l2_id = tightElectrons_id[3]
-                  self.out.fillBranch("Z1_l1_pdgId", tightElectrons_pdgid[0])
-                  self.out.fillBranch("Z1_l2_pdgId", tightElectrons_pdgid[2])
-                  self.out.fillBranch("Z2_l1_pdgId", tightElectrons_pdgid[1])
-                  self.out.fillBranch("Z2_l2_pdgId", tightElectrons_pdgid[3])
+		  Z1_l1_pdgId = tightElectrons_pdgid[0]
+		  Z1_l2_pdgId = tightElectrons_pdgid[2]
+		  Z2_l1_pdgId = tightElectrons_pdgid[1]
+		  Z2_l2_pdgId = tightElectrons_pdgid[3]
                 else:
                   Z1 = tightElectrons[1]+tightElectrons[3]
                   Z2 = tightElectrons[0]+tightElectrons[2]
@@ -990,10 +1047,10 @@ class ZZGProducer(Module):
 	          ZZ_Z1_l2_id = tightElectrons_id[3]
 	          ZZ_Z2_l1_id = tightElectrons_id[0]
 	          ZZ_Z2_l2_id = tightElectrons_id[2]
-                  self.out.fillBranch("Z1_l1_pdgId", tightElectrons_pdgid[1])
-                  self.out.fillBranch("Z1_l2_pdgId", tightElectrons_pdgid[3])
-                  self.out.fillBranch("Z2_l1_pdgId", tightElectrons_pdgid[0])
-                  self.out.fillBranch("Z2_l2_pdgId", tightElectrons_pdgid[2])
+		  Z1_l1_pdgId = tightElectrons_pdgid[1]
+		  Z1_l2_pdgId = tightElectrons_pdgid[3]
+		  Z2_l1_pdgId = tightElectrons_pdgid[0]
+		  Z2_l2_pdgId = tightElectrons_pdgid[2]
 
             else:
               if abs((tightElectrons[0]+tightElectrons[1]).M()-91.1876) < abs((tightElectrons[2]+tightElectrons[3]).M()-91.1876):
@@ -1007,10 +1064,10 @@ class ZZGProducer(Module):
 	        ZZ_Z1_l2_id = tightElectrons_id[1]
 	        ZZ_Z2_l1_id = tightElectrons_id[2]
 	        ZZ_Z2_l2_id = tightElectrons_id[3]
-                self.out.fillBranch("Z1_l1_pdgId", tightElectrons_pdgid[0])
-                self.out.fillBranch("Z1_l2_pdgId", tightElectrons_pdgid[1])
-                self.out.fillBranch("Z2_l1_pdgId", tightElectrons_pdgid[2])
-                self.out.fillBranch("Z2_l2_pdgId", tightElectrons_pdgid[3])
+		Z1_l1_pdgId = tightElectrons_pdgid[0]
+		Z1_l2_pdgId = tightElectrons_pdgid[1]
+		Z2_l1_pdgId = tightElectrons_pdgid[2]
+		Z2_l2_pdgId = tightElectrons_pdgid[3]
               else:
                 Z1 = tightElectrons[2]+tightElectrons[3]
                 Z2 = tightElectrons[0]+tightElectrons[1]
@@ -1022,10 +1079,10 @@ class ZZGProducer(Module):
 	        ZZ_Z1_l2_id = tightElectrons_id[3]
 	        ZZ_Z2_l1_id = tightElectrons_id[0]
 	        ZZ_Z2_l2_id = tightElectrons_id[1]
-                self.out.fillBranch("Z1_l1_pdgId", tightElectrons_pdgid[2])
-                self.out.fillBranch("Z1_l2_pdgId", tightElectrons_pdgid[3])
-                self.out.fillBranch("Z2_l1_pdgId", tightElectrons_pdgid[0])
-                self.out.fillBranch("Z2_l2_pdgId", tightElectrons_pdgid[1])
+		Z1_l1_pdgId = tightElectrons_pdgid[2]
+		Z1_l2_pdgId = tightElectrons_pdgid[3]
+		Z2_l1_pdgId = tightElectrons_pdgid[0]
+		Z2_l2_pdgId = tightElectrons_pdgid[1]
           else:
             if pass_Z1_basic_2ndpair and pass_Z2_basic_2ndpair:
               if abs((tightElectrons[0]+tightElectrons[2]).M()-91.1876) < abs((tightElectrons[1]+tightElectrons[3]).M()-91.1876):
@@ -1039,10 +1096,10 @@ class ZZGProducer(Module):
 	        ZZ_Z1_l2_id = tightElectrons_id[2]
 	        ZZ_Z2_l1_id = tightElectrons_id[1]
 	        ZZ_Z2_l2_id = tightElectrons_id[3]
-                self.out.fillBranch("Z1_l1_pdgId", tightElectrons_pdgid[0])
-                self.out.fillBranch("Z1_l2_pdgId", tightElectrons_pdgid[2])
-                self.out.fillBranch("Z2_l1_pdgId", tightElectrons_pdgid[1])
-                self.out.fillBranch("Z2_l2_pdgId", tightElectrons_pdgid[3])
+		Z1_l1_pdgId = tightElectrons_pdgid[0]
+		Z1_l2_pdgId = tightElectrons_pdgid[2]
+		Z2_l1_pdgId = tightElectrons_pdgid[1]
+		Z2_l2_pdgId = tightElectrons_pdgid[3]
               else:
                 Z1 = tightElectrons[1]+tightElectrons[3]
                 Z2 = tightElectrons[0]+tightElectrons[2]
@@ -1054,17 +1111,22 @@ class ZZGProducer(Module):
 	        ZZ_Z1_l2_id = tightElectrons_id[3]
 	        ZZ_Z2_l1_id = tightElectrons_id[0]
 	        ZZ_Z2_l2_id = tightElectrons_id[2]
-                self.out.fillBranch("Z1_l1_pdgId", tightElectrons_pdgid[1])
-                self.out.fillBranch("Z1_l2_pdgId", tightElectrons_pdgid[3])
-                self.out.fillBranch("Z2_l1_pdgId", tightElectrons_pdgid[0])
-                self.out.fillBranch("Z2_l2_pdgId", tightElectrons_pdgid[2])
+		Z1_l1_pdgId = tightElectrons_pdgid[1]
+		Z1_l2_pdgId = tightElectrons_pdgid[3]
+		Z2_l1_pdgId = tightElectrons_pdgid[0]
+		Z2_l2_pdgId = tightElectrons_pdgid[2]
 
         else:
+	  if (tightElectrons[0]+tightElectrons[1]).M()>4 and (tightElectrons[0]+tightElectrons[3]).M()>4 and (tightElectrons[1]+tightElectrons[2]).M()>4 and (tightElectrons[2]+tightElectrons[3]).M()>4:ZZ_mll=True
+
           pass_Z1_basic_1stpair = (tightElectrons[0]+tightElectrons[1]).M()>4 and (tightElectrons[0]+tightElectrons[1]).M()<120
           pass_Z2_basic_1stpair = (tightElectrons[2]+tightElectrons[3]).M()>4 and (tightElectrons[2]+tightElectrons[3]).M()<120
           pass_Z1_basic_2ndpair = (tightElectrons[0]+tightElectrons[3]).M()>4 and (tightElectrons[0]+tightElectrons[3]).M()<120
           pass_Z2_basic_2ndpair = (tightElectrons[1]+tightElectrons[2]).M()>4 and (tightElectrons[1]+tightElectrons[2]).M()<120
-	  ZZ_2Zmass=True
+
+	  if (pass_Z1_basic_1stpair and pass_Z2_basic_1stpair) or (pass_Z1_basic_2ndpair and pass_Z2_basic_2ndpair):
+            ZZ_2Zmass=True
+
           if pass_Z1_basic_1stpair and pass_Z2_basic_1stpair:
             if pass_Z1_basic_2ndpair and pass_Z2_basic_2ndpair:
               if min(abs((tightElectrons[0]+tightElectrons[1]).M()-91.1876), abs((tightElectrons[2]+tightElectrons[3]).M()-91.1876)) < min(abs((tightElectrons[0]+tightElectrons[3]).M()-91.1876), abs((tightElectrons[1]+tightElectrons[2]).M()-91.1876)):
@@ -1079,10 +1141,10 @@ class ZZGProducer(Module):
 	          ZZ_Z1_l2_id = tightElectrons_id[1]
 	          ZZ_Z2_l1_id = tightElectrons_id[2]
 	          ZZ_Z2_l2_id = tightElectrons_id[3]
-                  self.out.fillBranch("Z1_l1_pdgId", tightElectrons_pdgid[0])
-                  self.out.fillBranch("Z1_l2_pdgId", tightElectrons_pdgid[1])
-                  self.out.fillBranch("Z2_l1_pdgId", tightElectrons_pdgid[2])
-                  self.out.fillBranch("Z2_l2_pdgId", tightElectrons_pdgid[3])
+		  Z1_l1_pdgId = tightElectrons_pdgid[0]
+		  Z1_l2_pdgId = tightElectrons_pdgid[1]
+		  Z2_l1_pdgId = tightElectrons_pdgid[2]
+		  Z2_l2_pdgId = tightElectrons_pdgid[3]
                 else:
                   Z1 = tightElectrons[2]+tightElectrons[3]
                   Z2 = tightElectrons[0]+tightElectrons[1]
@@ -1094,10 +1156,10 @@ class ZZGProducer(Module):
 	          ZZ_Z1_l2_id = tightElectrons_id[3]
 	          ZZ_Z2_l1_id = tightElectrons_id[0]
 	          ZZ_Z2_l2_id = tightElectrons_id[1]
-                  self.out.fillBranch("Z1_l1_pdgId", tightElectrons_pdgid[2])
-                  self.out.fillBranch("Z1_l2_pdgId", tightElectrons_pdgid[3])
-                  self.out.fillBranch("Z2_l1_pdgId", tightElectrons_pdgid[0])
-                  self.out.fillBranch("Z2_l2_pdgId", tightElectrons_pdgid[1])
+		  Z1_l1_pdgId = tightElectrons_pdgid[2]
+		  Z1_l2_pdgId = tightElectrons_pdgid[3]
+		  Z2_l1_pdgId = tightElectrons_pdgid[0]
+		  Z2_l2_pdgId = tightElectrons_pdgid[1]
               else:
 
                 if abs((tightElectrons[0]+tightElectrons[3]).M()-91.1876) < abs((tightElectrons[1]+tightElectrons[2]).M()-91.1876):
@@ -1111,10 +1173,10 @@ class ZZGProducer(Module):
 	          ZZ_Z1_l2_id = tightElectrons_id[3]
 	          ZZ_Z2_l1_id = tightElectrons_id[1]
 	          ZZ_Z2_l2_id = tightElectrons_id[2]
-                  self.out.fillBranch("Z1_l1_pdgId", tightElectrons_pdgid[0])
-                  self.out.fillBranch("Z1_l2_pdgId", tightElectrons_pdgid[3])
-                  self.out.fillBranch("Z2_l1_pdgId", tightElectrons_pdgid[1])
-                  self.out.fillBranch("Z2_l2_pdgId", tightElectrons_pdgid[2])
+		  Z1_l1_pdgId = tightElectrons_pdgid[0]
+		  Z1_l2_pdgId = tightElectrons_pdgid[3]
+		  Z2_l1_pdgId = tightElectrons_pdgid[1]
+		  Z2_l2_pdgId = tightElectrons_pdgid[2]
                 else:
                   Z1 = tightElectrons[1]+tightElectrons[2]
                   Z2 = tightElectrons[0]+tightElectrons[3]
@@ -1126,10 +1188,10 @@ class ZZGProducer(Module):
 	          ZZ_Z1_l2_id = tightElectrons_id[2]
 	          ZZ_Z2_l1_id = tightElectrons_id[0]
 	          ZZ_Z2_l2_id = tightElectrons_id[3]
-                  self.out.fillBranch("Z1_l1_pdgId", tightElectrons_pdgid[1])
-                  self.out.fillBranch("Z1_l2_pdgId", tightElectrons_pdgid[2])
-                  self.out.fillBranch("Z2_l1_pdgId", tightElectrons_pdgid[0])
-                  self.out.fillBranch("Z2_l2_pdgId", tightElectrons_pdgid[3])
+		  Z1_l1_pdgId = tightElectrons_pdgid[1]
+		  Z1_l2_pdgId = tightElectrons_pdgid[2]
+		  Z2_l1_pdgId = tightElectrons_pdgid[0]
+		  Z2_l2_pdgId = tightElectrons_pdgid[3]
 
             else:
               if abs((tightElectrons[0]+tightElectrons[1]).M()-91.1876) < abs((tightElectrons[2]+tightElectrons[3]).M()-91.1876):
@@ -1143,10 +1205,10 @@ class ZZGProducer(Module):
 	        ZZ_Z1_l2_id = tightElectrons_id[1]
 	        ZZ_Z2_l1_id = tightElectrons_id[2]
 	        ZZ_Z2_l2_id = tightElectrons_id[3]
-                self.out.fillBranch("Z1_l1_pdgId", tightElectrons_pdgid[0])
-                self.out.fillBranch("Z1_l2_pdgId", tightElectrons_pdgid[1])
-                self.out.fillBranch("Z2_l1_pdgId", tightElectrons_pdgid[2])
-                self.out.fillBranch("Z2_l2_pdgId", tightElectrons_pdgid[3])
+		Z1_l1_pdgId = tightElectrons_pdgid[0]
+		Z1_l2_pdgId = tightElectrons_pdgid[1]
+		Z2_l1_pdgId = tightElectrons_pdgid[2]
+		Z2_l2_pdgId = tightElectrons_pdgid[3]
               else:
                 Z1 = tightElectrons[2]+tightElectrons[3]
                 Z2 = tightElectrons[0]+tightElectrons[1]
@@ -1158,10 +1220,10 @@ class ZZGProducer(Module):
 	        ZZ_Z1_l2_id = tightElectrons_id[3]
 	        ZZ_Z2_l1_id = tightElectrons_id[0]
 	        ZZ_Z2_l2_id = tightElectrons_id[1]
-                self.out.fillBranch("Z1_l1_pdgId", tightElectrons_pdgid[2])
-                self.out.fillBranch("Z1_l2_pdgId", tightElectrons_pdgid[3])
-                self.out.fillBranch("Z2_l1_pdgId", tightElectrons_pdgid[0])
-                self.out.fillBranch("Z2_l2_pdgId", tightElectrons_pdgid[1])
+		Z1_l1_pdgId = tightElectrons_pdgid[2]
+		Z1_l2_pdgId = tightElectrons_pdgid[3]
+		Z2_l1_pdgId = tightElectrons_pdgid[0]
+		Z2_l2_pdgId = tightElectrons_pdgid[1]
           else:
             if pass_Z1_basic_2ndpair and pass_Z2_basic_2ndpair:
               if abs((tightElectrons[0]+tightElectrons[3]).M()-91.1876) < abs((tightElectrons[1]+tightElectrons[2]).M()-91.1876):
@@ -1175,10 +1237,10 @@ class ZZGProducer(Module):
 	        ZZ_Z1_l2_id = tightElectrons_id[3]
 	        ZZ_Z2_l1_id = tightElectrons_id[1]
 	        ZZ_Z2_l2_id = tightElectrons_id[2]
-                self.out.fillBranch("Z1_l1_pdgId", tightElectrons_pdgid[0])
-                self.out.fillBranch("Z1_l2_pdgId", tightElectrons_pdgid[3])
-                self.out.fillBranch("Z2_l1_pdgId", tightElectrons_pdgid[1])
-                self.out.fillBranch("Z2_l2_pdgId", tightElectrons_pdgid[2])
+		Z1_l1_pdgId = tightElectrons_pdgid[0]
+		Z1_l2_pdgId = tightElectrons_pdgid[3]
+		Z2_l1_pdgId = tightElectrons_pdgid[1]
+		Z2_l2_pdgId = tightElectrons_pdgid[2]
               else:
                 Z1 = tightElectrons[1]+tightElectrons[2]
                 Z2 = tightElectrons[0]+tightElectrons[3]
@@ -1190,17 +1252,22 @@ class ZZGProducer(Module):
 	        ZZ_Z1_l2_id = tightElectrons_id[2]
 	        ZZ_Z2_l1_id = tightElectrons_id[0]
 	        ZZ_Z2_l2_id = tightElectrons_id[3]
-                self.out.fillBranch("Z1_l1_pdgId", tightElectrons_pdgid[1])
-                self.out.fillBranch("Z1_l2_pdgId", tightElectrons_pdgid[2])
-                self.out.fillBranch("Z2_l1_pdgId", tightElectrons_pdgid[0])
-                self.out.fillBranch("Z2_l2_pdgId", tightElectrons_pdgid[3])
+		Z1_l1_pdgId = tightElectrons_pdgid[1]
+		Z1_l2_pdgId = tightElectrons_pdgid[2]
+		Z2_l1_pdgId = tightElectrons_pdgid[0]
+		Z2_l2_pdgId = tightElectrons_pdgid[3]
 
       else: 
+	if (tightElectrons[0]+tightElectrons[2]).M()>4 and (tightElectrons[0]+tightElectrons[3]).M()>4 and (tightElectrons[1]+tightElectrons[2]).M()>4 and (tightElectrons[1]+tightElectrons[3]).M()>4:ZZ_mll=True
+
         pass_Z1_basic_1stpair = (tightElectrons[0]+tightElectrons[2]).M()>4 and (tightElectrons[0]+tightElectrons[2]).M()<120
         pass_Z2_basic_1stpair = (tightElectrons[1]+tightElectrons[3]).M()>4 and (tightElectrons[1]+tightElectrons[3]).M()<120
         pass_Z1_basic_2ndpair = (tightElectrons[0]+tightElectrons[3]).M()>4 and (tightElectrons[0]+tightElectrons[3]).M()<120
         pass_Z2_basic_2ndpair = (tightElectrons[1]+tightElectrons[2]).M()>4 and (tightElectrons[1]+tightElectrons[2]).M()<120
-	ZZ_2Zmass=True
+
+	if (pass_Z1_basic_1stpair and pass_Z2_basic_1stpair) or (pass_Z1_basic_2ndpair and pass_Z2_basic_2ndpair):
+            ZZ_2Zmass=True
+
         if pass_Z1_basic_1stpair and pass_Z2_basic_1stpair:
           if pass_Z1_basic_2ndpair and pass_Z2_basic_2ndpair:
             if min(abs((tightElectrons[0]+tightElectrons[2]).M()-91.1876), abs((tightElectrons[1]+tightElectrons[3]).M()-91.1876)) < min(abs((tightElectrons[0]+tightElectrons[3]).M()-91.1876), abs((tightElectrons[1]+tightElectrons[2]).M()-91.1876)):
@@ -1215,10 +1282,10 @@ class ZZGProducer(Module):
 	        ZZ_Z1_l2_id = tightElectrons_id[2]
 	        ZZ_Z2_l1_id = tightElectrons_id[1]
 	        ZZ_Z2_l2_id = tightElectrons_id[3]
-                self.out.fillBranch("Z1_l1_pdgId", tightElectrons_pdgid[0])
-                self.out.fillBranch("Z1_l2_pdgId", tightElectrons_pdgid[2])
-                self.out.fillBranch("Z2_l1_pdgId", tightElectrons_pdgid[1])
-                self.out.fillBranch("Z2_l2_pdgId", tightElectrons_pdgid[3])
+		Z1_l1_pdgId = tightElectrons_pdgid[0]
+		Z1_l2_pdgId = tightElectrons_pdgid[2]
+		Z2_l1_pdgId = tightElectrons_pdgid[1]
+		Z2_l2_pdgId = tightElectrons_pdgid[3]
               else:
                 Z1 = tightElectrons[1]+tightElectrons[3]
                 Z2 = tightElectrons[0]+tightElectrons[2]
@@ -1230,10 +1297,10 @@ class ZZGProducer(Module):
 	        ZZ_Z1_l2_id = tightElectrons_id[3]
 	        ZZ_Z2_l1_id = tightElectrons_id[0]
 	        ZZ_Z2_l2_id = tightElectrons_id[2]
-                self.out.fillBranch("Z1_l1_pdgId", tightElectrons_pdgid[1])
-                self.out.fillBranch("Z1_l2_pdgId", tightElectrons_pdgid[3])
-                self.out.fillBranch("Z2_l1_pdgId", tightElectrons_pdgid[0])
-                self.out.fillBranch("Z2_l2_pdgId", tightElectrons_pdgid[2])
+		Z1_l1_pdgId = tightElectrons_pdgid[1]
+		Z1_l2_pdgId = tightElectrons_pdgid[3]
+		Z2_l1_pdgId = tightElectrons_pdgid[0]
+		Z2_l2_pdgId = tightElectrons_pdgid[2]
             else:
 
               if abs((tightElectrons[0]+tightElectrons[3]).M()-91.1876) < abs((tightElectrons[1]+tightElectrons[2]).M()-91.1876):
@@ -1247,10 +1314,10 @@ class ZZGProducer(Module):
 	        ZZ_Z1_l2_id = tightElectrons_id[3]
 	        ZZ_Z2_l1_id = tightElectrons_id[1]
 	        ZZ_Z2_l2_id = tightElectrons_id[2]
-                self.out.fillBranch("Z1_l1_pdgId", tightElectrons_pdgid[0])
-                self.out.fillBranch("Z1_l2_pdgId", tightElectrons_pdgid[3])
-                self.out.fillBranch("Z2_l1_pdgId", tightElectrons_pdgid[1])
-                self.out.fillBranch("Z2_l2_pdgId", tightElectrons_pdgid[2])
+		Z1_l1_pdgId = tightElectrons_pdgid[0]
+		Z1_l2_pdgId = tightElectrons_pdgid[3]
+		Z2_l1_pdgId = tightElectrons_pdgid[1]
+		Z2_l2_pdgId = tightElectrons_pdgid[2]
               else:
                 Z1 = tightElectrons[1]+tightElectrons[2]
                 Z2 = tightElectrons[0]+tightElectrons[3]
@@ -1262,10 +1329,10 @@ class ZZGProducer(Module):
 	        ZZ_Z1_l2_id = tightElectrons_id[2]
 	        ZZ_Z2_l1_id = tightElectrons_id[0]
 	        ZZ_Z2_l2_id = tightElectrons_id[3]
-                self.out.fillBranch("Z1_l1_pdgId", tightElectrons_pdgid[1])
-                self.out.fillBranch("Z1_l2_pdgId", tightElectrons_pdgid[2])
-                self.out.fillBranch("Z2_l1_pdgId", tightElectrons_pdgid[0])
-                self.out.fillBranch("Z2_l2_pdgId", tightElectrons_pdgid[3])
+		Z1_l1_pdgId = tightElectrons_pdgid[1]
+		Z1_l2_pdgId = tightElectrons_pdgid[2]
+		Z2_l1_pdgId = tightElectrons_pdgid[0]
+		Z2_l2_pdgId = tightElectrons_pdgid[3]
 
           else:
             if abs((tightElectrons[0]+tightElectrons[2]).M()-91.1876) < abs((tightElectrons[1]+tightElectrons[3]).M()-91.1876):
@@ -1279,10 +1346,10 @@ class ZZGProducer(Module):
 	      ZZ_Z1_l2_id = tightElectrons_id[2]
 	      ZZ_Z2_l1_id = tightElectrons_id[1]
 	      ZZ_Z2_l2_id = tightElectrons_id[3]
-              self.out.fillBranch("Z1_l1_pdgId", tightElectrons_pdgid[0])
-              self.out.fillBranch("Z1_l2_pdgId", tightElectrons_pdgid[2])
-              self.out.fillBranch("Z2_l1_pdgId", tightElectrons_pdgid[1])
-              self.out.fillBranch("Z2_l2_pdgId", tightElectrons_pdgid[3])
+	      Z1_l1_pdgId = tightElectrons_pdgid[0]
+	      Z1_l2_pdgId = tightElectrons_pdgid[2]
+	      Z2_l1_pdgId = tightElectrons_pdgid[1]
+	      Z2_l2_pdgId = tightElectrons_pdgid[3]
             else:
               Z1 = tightElectrons[1]+tightElectrons[3]
               Z2 = tightElectrons[0]+tightElectrons[2]
@@ -1294,10 +1361,10 @@ class ZZGProducer(Module):
 	      ZZ_Z1_l2_id = tightElectrons_id[3]
 	      ZZ_Z2_l1_id = tightElectrons_id[0]
 	      ZZ_Z2_l2_id = tightElectrons_id[2]
-              self.out.fillBranch("Z1_l1_pdgId", tightElectrons_pdgid[1])
-              self.out.fillBranch("Z1_l2_pdgId", tightElectrons_pdgid[3])
-              self.out.fillBranch("Z2_l1_pdgId", tightElectrons_pdgid[0])
-              self.out.fillBranch("Z2_l2_pdgId", tightElectrons_pdgid[2])
+	      Z1_l1_pdgId = tightElectrons_pdgid[1]
+	      Z1_l2_pdgId = tightElectrons_pdgid[3]
+	      Z2_l1_pdgId = tightElectrons_pdgid[0]
+	      Z2_l2_pdgId = tightElectrons_pdgid[2]
         else:
           if pass_Z1_basic_2ndpair and pass_Z2_basic_2ndpair:
             if abs((tightElectrons[0]+tightElectrons[3]).M()-91.1876) < abs((tightElectrons[1]+tightElectrons[2]).M()-91.1876):
@@ -1311,10 +1378,10 @@ class ZZGProducer(Module):
 	      ZZ_Z1_l2_id = tightElectrons_id[3]
 	      ZZ_Z2_l1_id = tightElectrons_id[1]
 	      ZZ_Z2_l2_id = tightElectrons_id[2]
-              self.out.fillBranch("Z1_l1_pdgId", tightElectrons_pdgid[0])
-              self.out.fillBranch("Z1_l2_pdgId", tightElectrons_pdgid[3])
-              self.out.fillBranch("Z2_l1_pdgId", tightElectrons_pdgid[1])
-              self.out.fillBranch("Z2_l2_pdgId", tightElectrons_pdgid[2])
+	      Z1_l1_pdgId = tightElectrons_pdgid[0]
+	      Z1_l2_pdgId = tightElectrons_pdgid[3]
+	      Z2_l1_pdgId = tightElectrons_pdgid[1]
+	      Z2_l2_pdgId = tightElectrons_pdgid[2]
             else:
               Z1 = tightElectrons[1]+tightElectrons[2]
               Z2 = tightElectrons[0]+tightElectrons[3]
@@ -1326,12 +1393,12 @@ class ZZGProducer(Module):
 	      ZZ_Z1_l2_id = tightElectrons_id[2]
 	      ZZ_Z2_l1_id = tightElectrons_id[0]
 	      ZZ_Z2_l2_id = tightElectrons_id[3]
-              self.out.fillBranch("Z1_l1_pdgId", tightElectrons_pdgid[1])
-              self.out.fillBranch("Z1_l2_pdgId", tightElectrons_pdgid[2])
-              self.out.fillBranch("Z2_l1_pdgId", tightElectrons_pdgid[0])
-              self.out.fillBranch("Z2_l2_pdgId", tightElectrons_pdgid[3])
+	      Z1_l1_pdgId = tightElectrons_pdgid[1]
+	      Z1_l2_pdgId = tightElectrons_pdgid[2]
+	      Z2_l1_pdgId = tightElectrons_pdgid[0]
+	      Z2_l2_pdgId = tightElectrons_pdgid[3]
 
-    if ZZ_nl and ZZ_region>0 and ZZ_drll and ZZ_mll and ZZ_dremu and ZZ_2Zmass and Z1.M()>60 and Z1.M()<120 and Z2.M()>60 and Z2.M()<120:
+    if ZZ_region>0 and ZZ_drll and ZZ_mll and ZZ_dremu and ZZ_2Zmass and Z1.M()>40 and Z1.M()<120 and Z2.M()>12 and Z2.M()<120:
       ZZ_SR=1
 
     if not (WZ_region>0 or ZZ_SR>0):
@@ -1343,7 +1410,12 @@ class ZZGProducer(Module):
     self.out.fillBranch("ZZ_Z1_l2_id",ZZ_Z1_l2_id)
     self.out.fillBranch("ZZ_Z2_l1_id",ZZ_Z2_l1_id)
     self.out.fillBranch("ZZ_Z2_l2_id",ZZ_Z2_l2_id)
+    self.out.fillBranch("Z1_l1_pdgId",Z1_l1_pdgId)
+    self.out.fillBranch("Z1_l2_pdgId",Z1_l2_pdgId)
+    self.out.fillBranch("Z2_l1_pdgId",Z2_l1_pdgId)
+    self.out.fillBranch("Z2_l2_pdgId",Z2_l2_pdgId)
     self.out.fillBranch("ZZ_SR",ZZ_SR)
+    self.out.fillBranch("ZZ_region",ZZ_region)
     self.out.fillBranch("Z1_l1_pt", Z1_lepton1.Pt())
     self.out.fillBranch("Z1_l1_eta", Z1_lepton1.Eta())
     self.out.fillBranch("Z1_l1_phi", Z1_lepton1.Phi())
@@ -1376,17 +1448,15 @@ class ZZGProducer(Module):
     # Ptcut is the right most bit
     # for each cut, loose:01, medium:1X, tight:11
 
-    mask_medium_full = (1<<1) | (1<<3) | (1 << 5) | (1 << 7) | (1 << 9) | (1 << 11) | (1 << 13)
+#    mask_medium_full = (1<<1) | (1<<3) | (1 << 5) | (1 << 7) | (1 << 9) | (1 << 11) | (1 << 13)
 
     photons = Collection(event, 'Photon')
-    photon_v4temp=TLorentzVector()
-    mediumPhotons_matched = []
-    mediumPhotons_unmatched = []
-    mediumPhotons_matched_id = []
-    mediumPhotons_unmatched_id = []
+#    mediumPhotons_matched_id = []
+#    mediumPhotons_unmatched_id = []
+    loosePhotons_matched_id = []
+    loosePhotons_unmatched_id = []
 
     # medium ID photon pass full medium cuts
-    print 'npho', event.nPhoton
     for ipho in range(0, event.nPhoton):
       if photons[ipho].pt < 15:
         continue
@@ -1394,82 +1464,33 @@ class ZZGProducer(Module):
       if not (photons[ipho].isScEtaEE or photons[ipho].isScEtaEB):
         continue
 
-      photon_bitmap = photons[ipho].vidNestedWPBitmap & mask_medium_full
+#      photon_bitmap = photons[ipho].vidNestedWPBitmap & mask_medium_full
 
       # cut-based medium ID
-      if not (photon_bitmap==mask_medium_full):
-        continue
-
+#      if not (photon_bitmap==mask_medium_full):
+#        continue
+      if photons[ipho].cutBased <1:
+	continue
       # pixel veto for electron mis-ID
       if photons[ipho].pixelSeed:
-        continue
-      print 'HAHAHA', photons[ipho].pt
-
-      # require DeltaR(photon, lepton)>0.5
-      photon_v4temp.SetPtEtaPhiM(photons[ipho].pt,photons[ipho].eta,photons[ipho].phi,photons[ipho].mass)
-      if not (photon_v4temp.DeltaR(Z1_lepton1)>0.5 and photon_v4temp.DeltaR(Z2_lepton1)>0.5 and photon_v4temp.DeltaR(Z1_lepton2)>0.5 and photon_v4temp.DeltaR(Z2_lepton2)>0.5):
         continue
 
       # MC photon match to gen-level prompt photon
       if self.is_mc:
 	if (photons[ipho].genPartFlav==1):
-	  mediumPhotons_matched.append(photon_v4temp.Clone())
-	  mediumPhotons_matched_id.append(ipho)
-	else:
-	  mediumPhotons_unmatched.append(photon_v4temp.Clone())
-          mediumPhotons_unmatched_id.append(ipho)
+	  loosePhotons_matched_id.append(ipho)
+	if (photons[ipho].genPartFlav==0):
+          loosePhotons_unmatched_id.append(ipho)
       # use the same name for data
       else:
-	mediumPhotons_matched.append(photon_v4temp.Clone())
-	mediumPhotons_matched_id.append(ipho)
+	loosePhotons_matched_id.append(ipho)
 
-    if len(mediumPhotons_matched_id)==0:
-      self.out.fillBranch("matched_photon_pt", -99)
-      self.out.fillBranch("matched_photon_eta", -99)
-      self.out.fillBranch("matched_photon_phi", -99)
-      self.out.fillBranch("matched_photon_mass", -99)
-      self.out.fillBranch("matched_photon_isScEtaEB", -99)
-      self.out.fillBranch("matched_photon_isScEtaEE", -99)
-    if len(mediumPhotons_matched_id)>0:
-      self.out.fillBranch("matched_photon_pt", mediumPhotons_matched[0].Pt())
-      self.out.fillBranch("matched_photon_eta", mediumPhotons_matched[0].Eta())
-      self.out.fillBranch("matched_photon_phi", mediumPhotons_matched[0].Phi())
-      self.out.fillBranch("matched_photon_mass", mediumPhotons_matched[0].M())
-      self.out.fillBranch("matched_photon_isScEtaEB", photons[mediumPhotons_matched_id[0]].isScEtaEB)
-      self.out.fillBranch("matched_photon_isScEtaEE", photons[mediumPhotons_matched_id[0]].isScEtaEE)
+    loosePhotons_matched_id.extend(np.zeros(event.nPhoton-len(loosePhotons_matched_id),int)-1)
+    loosePhotons_unmatched_id.extend(np.zeros(event.nPhoton-len(loosePhotons_unmatched_id),int)-1)
 
-    if len(mediumPhotons_unmatched_id)==0:
-      self.out.fillBranch("unmatched_photon_pt", -99)
-      self.out.fillBranch("unmatched_photon_eta", -99)
-      self.out.fillBranch("unmatched_photon_phi", -99)
-      self.out.fillBranch("unmatched_photon_mass", -99)
-      self.out.fillBranch("unmatched_photon_isScEtaEB", -99)
-      self.out.fillBranch("unmatched_photon_isScEtaEE", -99)
-    if len(mediumPhotons_unmatched_id)>0:
-      self.out.fillBranch("unmatched_photon_pt", mediumPhotons_unmatched[0].Pt())
-      self.out.fillBranch("unmatched_photon_eta", mediumPhotons_unmatched[0].Eta())
-      self.out.fillBranch("unmatched_photon_phi", mediumPhotons_unmatched[0].Phi())
-      self.out.fillBranch("unmatched_photon_mass", mediumPhotons_unmatched[0].M())
-      self.out.fillBranch("unmatched_photon_isScEtaEB", photons[mediumPhotons_unmatched_id[0]].isScEtaEB)
-      self.out.fillBranch("unmatched_photon_isScEtaEE", photons[mediumPhotons_unmatched_id[0]].isScEtaEE)
+    self.out.fillBranch("loosePhotons_matched_id",loosePhotons_matched_id)
+    self.out.fillBranch("loosePhotons_unmatched_id",loosePhotons_unmatched_id)
 
-#    mask_sieie = (1<<1) | (1<<3) | (1 << 5) | (1 << 9) | (1 << 11) | (1 << 13)
-#    mask_sieie_chiso = (1<<1) | (1<<3) | (1 << 5) | (1 << 11) | (1 << 13)
-#
-#    # store photon info for template fit
-#    for ipho in range(0, event.nPhoton):
-#      if photons[ipho].pt < 15:
-#        continue
-#      if not (photons[ipho].isScEtaEE or photons[ipho].isScEtaEB):
-#        continue
-#      photon_nosieie_bitmap = photons[ipho].vidNestedWPBitmap & mask_sieie
-#      if not (photon_nosieie_bitmap==mask_sieie):
-#        continue
-#      # require DeltaR(photon, lepton)>0.5
-#      photon_v4temp.SetPtEtaPhiM(photons[ipho].pt,photons[ipho].eta,photons[ipho].phi,photons[ipho].mass)
-#      if not (photon_v4temp.DeltaR(Z1_lepton1)>0.5 and photon_v4temp.DeltaR(Z2_lepton1)>0.5 and photon_v4temp.DeltaR(Z1_lepton2)>0.5 and photon_v4temp.DeltaR(Z2_lepton2)>0.5):
-#        continue
-      
     return True
 
 ZZG2016 = lambda: ZZGProducer("2016")

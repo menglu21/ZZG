@@ -1,0 +1,1 @@
+rm -r crab_DY crab_DoubleMuon_B crab_DoubleMuon_C crab_DoubleMuon_D crab_DoubleMuon_E crab_DoubleMuon_F crab_WA crab_WWA crab_WWW crab_WWZ crab_WZA crab_WZZ crab_WZto2L crab_WZto3L crab_ZA crab_ZZ crab_ZZZ crab_ggZZ crab_tZq crab_ttA crab_ttJets crab_ttW crab_ttZ crab_DoubleEG_B crab_DoubleEG_C crab_DoubleEG_D crab_DoubleEG_E crab_DoubleEG_F
