@@ -3,7 +3,7 @@ import time
 import os
 import math
 from math import sqrt
-import plot_ZZregion
+import plot_ZZGregion
 
 #ZZG_header_path = os.path.join("aa.h")
 #ROOT.gInterpreter.Declare('#include "{}"'.format(ZZG_header_path))
@@ -33,19 +33,19 @@ def for_diele_trigger(df):
   return ditri_ele_trigger
 
 def for_singleele_trigger(df):
-  sin_ele_trigger = df.Filter("(HLT_Ele35_WPTight_Gsf || HLT_Ele38_WPTight_Gsf || HLT_Ele40_WPTight_Gsf) && !(HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL || HLT_DoubleEle33_CaloIdL_MW)")
+  sin_ele_trigger = df.Filter("(HLT_passEle32WPTight || HLT_Ele35_WPTight_Gsf || HLT_Ele38_WPTight_Gsf || HLT_Ele40_WPTight_Gsf) && !(HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL || HLT_DoubleEle33_CaloIdL_MW)")
   return sin_ele_trigger
 
 def for_dimuon_trigger(df):
-  ditri_mu_trigger = df.Filter("(HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass8 || HLT_TripleMu_10_5_5_DZ || HLT_TripleMu_12_10_5) && !(HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL || HLT_DoubleEle33_CaloIdL_MW || HLT_Ele35_WPTight_Gsf || HLT_Ele38_WPTight_Gsf || HLT_Ele40_WPTight_Gsf)")
+  ditri_mu_trigger = df.Filter("(HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass8 || HLT_TripleMu_10_5_5_DZ || HLT_TripleMu_12_10_5) && !(HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL || HLT_DoubleEle33_CaloIdL_MW || HLT_Ele35_WPTight_Gsf || HLT_Ele38_WPTight_Gsf || HLT_Ele40_WPTight_Gsf || HLT_passEle32WPTight)")
   return ditri_mu_trigger
 
 def for_cross_trigger(df):
-  x_trigger = df.Filter("(HLT_Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ || HLT_Mu12_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ || HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL_DZ || HLT_DiMu9_Ele9_CaloIdL_TrackIdL || HLT_Mu8_DiEle12_CaloIdL_TrackIdL) && !(HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass8 || HLT_TripleMu_10_5_5_DZ || HLT_TripleMu_12_10_5 || HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL || HLT_DoubleEle33_CaloIdL_MW || HLT_Ele35_WPTight_Gsf || HLT_Ele38_WPTight_Gsf || HLT_Ele40_WPTight_Gsf)")
+  x_trigger = df.Filter("(HLT_Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ || HLT_Mu12_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ || HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL_DZ || HLT_DiMu9_Ele9_CaloIdL_TrackIdL || HLT_Mu8_DiEle12_CaloIdL_TrackIdL) && !(HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass8 || HLT_TripleMu_10_5_5_DZ || HLT_TripleMu_12_10_5 || HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL || HLT_DoubleEle33_CaloIdL_MW || HLT_Ele35_WPTight_Gsf || HLT_Ele38_WPTight_Gsf || HLT_Ele40_WPTight_Gsf || HLT_passEle32WPTight)")
   return x_trigger
 
 def for_singlemuon_trigger(df):
-  single_mu_trigger = df.Filter("HLT_IsoMu27 && !(HLT_Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ || HLT_Mu12_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ || HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL_DZ || HLT_DiMu9_Ele9_CaloIdL_TrackIdL || HLT_Mu8_DiEle12_CaloIdL_TrackIdL || HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass8 || HLT_TripleMu_10_5_5_DZ || HLT_TripleMu_12_10_5 || HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL || HLT_DoubleEle33_CaloIdL_MW || HLT_Ele35_WPTight_Gsf || HLT_Ele38_WPTight_Gsf || HLT_Ele40_WPTight_Gsf)")
+  single_mu_trigger = df.Filter("HLT_IsoMu27 && !(HLT_Mu8_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ || HLT_Mu12_TrkIsoVVL_Ele23_CaloIdL_TrackIdL_IsoVL_DZ || HLT_Mu23_TrkIsoVVL_Ele12_CaloIdL_TrackIdL_IsoVL_DZ || HLT_DiMu9_Ele9_CaloIdL_TrackIdL || HLT_Mu8_DiEle12_CaloIdL_TrackIdL || HLT_Mu17_TrkIsoVVL_Mu8_TrkIsoVVL_DZ_Mass8 || HLT_TripleMu_10_5_5_DZ || HLT_TripleMu_12_10_5 || HLT_Ele23_Ele12_CaloIdL_TrackIdL_IsoVL || HLT_DoubleEle33_CaloIdL_MW || HLT_Ele35_WPTight_Gsf || HLT_Ele38_WPTight_Gsf || HLT_Ele40_WPTight_Gsf || HLT_passEle32WPTight)")
   return single_mu_trigger
 
 #path='/eos/cms/store/user/melu/ZZG2017/'
@@ -79,30 +79,33 @@ vvv_list = ['WWZ.root','WZG.root','WZZ.root','ZZZ.root']
 vv_list = ['WZTo3L.root','WZTo2L.root','ZG.root']
 
 #histograms name
-hists_name = ['Z1_l1_pt','Z1_l1_eta','Z1_l1_phi','Z1_l2_pt','Z1_l2_eta','Z1_l2_phi','Z2_l1_pt','Z2_l1_eta','Z2_l1_phi','Z2_l2_pt','Z2_l2_eta','Z2_l2_phi','Z1_mass','Z1_pt','Z1_eta','Z1_phi','Z2_mass','Z2_pt','Z2_eta','Z2_phi']
+hists_name = ['Z1_l1_pt','Z1_l1_eta','Z1_l1_phi','Z1_l2_pt','Z1_l2_eta','Z1_l2_phi','Z2_l1_pt','Z2_l1_eta','Z2_l1_phi','Z2_l2_pt','Z2_l2_eta','Z2_l2_phi','Z1_mass','Z1_pt','Z1_eta','Z1_phi','Z2_mass','Z2_pt','Z2_eta','Z2_phi', 'photon_pt','photon_eta','photon_phi']
 
 #histograms bins
 histos_bins = {
-hists_name[0]:20,
-hists_name[1]:20,
-hists_name[2]:20,
+hists_name[0]:10,
+hists_name[1]:10,
+hists_name[2]:10,
 hists_name[3]:10,
-hists_name[4]:20,
-hists_name[5]:20,
-hists_name[6]:20,
-hists_name[7]:20,
-hists_name[8]:20,
+hists_name[4]:10,
+hists_name[5]:10,
+hists_name[6]:10,
+hists_name[7]:10,
+hists_name[8]:10,
 hists_name[9]:10,
-hists_name[10]:20,
-hists_name[11]:20,
-hists_name[12]:60,
-hists_name[13]:20,
-hists_name[14]:20,
-hists_name[15]:20,
-hists_name[16]:60,
-hists_name[17]:20,
-hists_name[18]:20,
-hists_name[19]:20,
+hists_name[10]:10,
+hists_name[11]:10,
+hists_name[12]:20,
+hists_name[13]:10,
+hists_name[14]:10,
+hists_name[15]:10,
+hists_name[16]:20,
+hists_name[17]:10,
+hists_name[18]:10,
+hists_name[19]:10,
+hists_name[20]:10,
+hists_name[21]:10,
+hists_name[22]:10,
 }
 
 #low edge
@@ -127,6 +130,9 @@ hists_name[16]:60,
 hists_name[17]:0,
 hists_name[18]:-5,
 hists_name[19]:-4,
+hists_name[20]:0,
+hists_name[21]:-2.5,
+hists_name[22]:-4,
 }
 
 #high edge
@@ -151,9 +157,12 @@ hists_name[16]:120,
 hists_name[17]:160,
 hists_name[18]:5,
 hists_name[19]:4,
+hists_name[20]:100,
+hists_name[21]:2.5,
+hists_name[22]:4,
 }
 
-def ZZ_Analysis():
+def ZZG_Analysis():
 
   histos = []
 
@@ -202,15 +211,22 @@ def ZZ_Analysis():
   ZZZ_xs = 0.01398
   ZZZ_ev = get_mcEventnumber(vvv_list[3])
 
-  # define the filters here
-  #filters="ZZ_region==2 && Z1_mass>60 && Z1_mass<120 && Z2_mass>60 && Z2_mass<120 && Muon_sip3d[0]<4&&Muon_sip3d[1]<4&&Electron_sip3d[0]<4&&Electron_sip3d[1]<4"
-  #filters="ZZ_region==1 && Z1_mass>60 && Z1_mass<120 && Z2_mass>60 && Z2_mass<120 && Electron_sip3d[0]<4&&Electron_sip3d[1]<4&&Electron_sip3d[2]<4&&Electron_sip3d[3]<4"
-  filters="ZZ_region==3 && Z1_mass>60 && Z1_mass<120 && Z2_mass>60 && Z2_mass<120 && Muon_sip3d[0]<4&&Muon_sip3d[1]<4&&Muon_sip3d[2]<4&&Muon_sip3d[3]<4"
+  # define the filters here, 1:4e, 2:2e2m, 3:4m
+  #filters="ZZ_region==2 && Z1_mass>60 && Z1_mass<120 && Z2_mass>60 && Z2_mass<120 && Muon_sip3d[0]<4&&Muon_sip3d[1]<4&&Electron_sip3d[0]<4&&Electron_sip3d[1]<4 && nPhoton>0"
+  #filters="ZZ_region==1 && Z1_mass>60 && Z1_mass<120 && Z2_mass>60 && Z2_mass<120 && Electron_sip3d[0]<4&&Electron_sip3d[1]<4&&Electron_sip3d[2]<4&&Electron_sip3d[3]<4 && nPhoton>0"
+  filters="ZZ_region==3 && Z1_mass>60 && Z1_mass<120 && Z2_mass>60 && Z2_mass<120 && Muon_sip3d[0]<4&&Muon_sip3d[1]<4&&Muon_sip3d[2]<4&&Muon_sip3d[3]<4 && nPhoton>0"
+
+  photon_filter1="loosePhotons_matched_id[0]>-1 && "
+  photon_filter2="loosePhotons_unmatched_id[0]>-1"
 
   df_ZZG_tree = ROOT.RDataFrame("Events",path+signal_list[0])
   df_ZZG_tree = df_ZZG_tree.Define("genweight","puWeight*genWeight/abs(genWeight)")
   df_ZZG = df_ZZG_tree.Filter(filters)
-  df_ZZG_trigger = all_trigger(df_ZZG)
+  df_ZZG_photon = df_ZZG.Filter(photon_filter1)
+  df_ZZG_trigger = all_trigger(df_ZZG_photon)
+  df_ZZG_trigger = df_ZZG_trigger.Define('photon_pt','Photon_pt[loosePhotons_matched_id[0]]')
+  df_ZZG_trigger = df_ZZG_trigger.Define('photon_eta','Photon_eta[loosePhotons_matched_id[0]]')
+  df_ZZG_trigger = df_ZZG_trigger.Define('photon_phi','Photon_phi[loosePhotons_matched_id[0]]')
   df_ZZG_histos=[]
   for i in hists_name:
     df_ZZG_histo = df_ZZG_trigger.Histo1D((i,'',histos_bins[i],histos_bins_low[i],histos_bins_high[i]), i,'genweight')
@@ -219,7 +235,11 @@ def ZZ_Analysis():
   df_ZZ_tree = ROOT.RDataFrame("Events",path+zz_list[0])
   df_ZZ_tree = df_ZZ_tree.Define("genweight","puWeight*genWeight/abs(genWeight)")
   df_ZZ = df_ZZ_tree.Filter(filters)
-  df_ZZ_trigger = all_trigger(df_ZZ)
+  df_ZZ_photon = df_ZZ.Filter(photon_filter2)
+  df_ZZ_trigger = all_trigger(df_ZZ_photon)
+  df_ZZ_trigger = df_ZZ_trigger.Define('photon_pt','Photon_pt[loosePhotons_unmatched_id[0]]')
+  df_ZZ_trigger = df_ZZ_trigger.Define('photon_eta','Photon_eta[loosePhotons_unmatched_id[0]]')
+  df_ZZ_trigger = df_ZZ_trigger.Define('photon_phi','Photon_phi[loosePhotons_unmatched_id[0]]')
   df_ZZ_histos=[]
   for i in hists_name:
     df_ZZ_histo = df_ZZ_trigger.Histo1D((i,'',histos_bins[i],histos_bins_low[i],histos_bins_high[i]), i,'genweight')
@@ -228,7 +248,11 @@ def ZZ_Analysis():
   df_ggZZ_4e_tree = ROOT.RDataFrame("Events",path+ggzz_list[0])
   df_ggZZ_4e_tree = df_ggZZ_4e_tree.Define("genweight","puWeight*genWeight/abs(genWeight)")
   df_ggZZ_4e = df_ggZZ_4e_tree.Filter(filters)
-  df_ggZZ_4e_trigger = all_trigger(df_ggZZ_4e)
+  df_ggZZ_4e_photon = df_ggZZ_4e.Filter(photon_filter1)
+  df_ggZZ_4e_trigger = all_trigger(df_ggZZ_4e_photon)
+  df_ggZZ_4e_trigger = df_ggZZ_4e_trigger.Define('photon_pt','Photon_pt[loosePhotons_matched_id[0]]')
+  df_ggZZ_4e_trigger = df_ggZZ_4e_trigger.Define('photon_eta','Photon_eta[loosePhotons_matched_id[0]]')
+  df_ggZZ_4e_trigger = df_ggZZ_4e_trigger.Define('photon_phi','Photon_phi[loosePhotons_matched_id[0]]')
   df_ggZZ_4e_histos=[]
   for i in hists_name:
     df_ggZZ_4e_histo = df_ggZZ_4e_trigger.Histo1D((i,'',histos_bins[i],histos_bins_low[i],histos_bins_high[i]), i,'genweight')
@@ -237,7 +261,11 @@ def ZZ_Analysis():
   df_ggZZ_4mu_tree = ROOT.RDataFrame("Events",path+ggzz_list[1])
   df_ggZZ_4mu_tree = df_ggZZ_4mu_tree.Define("genweight","puWeight*genWeight/abs(genWeight)")
   df_ggZZ_4mu = df_ggZZ_4mu_tree.Filter(filters)
-  df_ggZZ_4mu_trigger = all_trigger(df_ggZZ_4mu)
+  df_ggZZ_4mu_photon = df_ggZZ_4mu.Filter(photon_filter1)
+  df_ggZZ_4mu_trigger = all_trigger(df_ggZZ_4mu_photon)
+  df_ggZZ_4mu_trigger = df_ggZZ_4mu_trigger.Define('photon_pt','Photon_pt[loosePhotons_matched_id[0]]')
+  df_ggZZ_4mu_trigger = df_ggZZ_4mu_trigger.Define('photon_eta','Photon_eta[loosePhotons_matched_id[0]]')
+  df_ggZZ_4mu_trigger = df_ggZZ_4mu_trigger.Define('photon_phi','Photon_phi[loosePhotons_matched_id[0]]')
   df_ggZZ_4mu_histos=[]
   for i in hists_name:
     df_ggZZ_4mu_histo = df_ggZZ_4mu_trigger.Histo1D((i,'',histos_bins[i],histos_bins_low[i],histos_bins_high[i]), i,'genweight')
@@ -246,7 +274,11 @@ def ZZ_Analysis():
   df_ggZZ_4tau_tree = ROOT.RDataFrame("Events",path+ggzz_list[2])
   df_ggZZ_4tau_tree = df_ggZZ_4tau_tree.Define("genweight","puWeight*genWeight/abs(genWeight)")
   df_ggZZ_4tau = df_ggZZ_4tau_tree.Filter(filters)
-  df_ggZZ_4tau_trigger = all_trigger(df_ggZZ_4tau)
+  df_ggZZ_4tau_photon = df_ggZZ_4tau.Filter(photon_filter1)
+  df_ggZZ_4tau_trigger = all_trigger(df_ggZZ_4tau_photon)
+  df_ggZZ_4tau_trigger = df_ggZZ_4tau_trigger.Define('photon_pt','Photon_pt[loosePhotons_matched_id[0]]')
+  df_ggZZ_4tau_trigger = df_ggZZ_4tau_trigger.Define('photon_eta','Photon_eta[loosePhotons_matched_id[0]]')
+  df_ggZZ_4tau_trigger = df_ggZZ_4tau_trigger.Define('photon_phi','Photon_phi[loosePhotons_matched_id[0]]')
   df_ggZZ_4tau_histos=[]
   for i in hists_name:
     df_ggZZ_4tau_histo = df_ggZZ_4tau_trigger.Histo1D((i,'',histos_bins[i],histos_bins_low[i],histos_bins_high[i]), i,'genweight')
@@ -255,7 +287,11 @@ def ZZ_Analysis():
   df_ggZZ_2e2mu_tree = ROOT.RDataFrame("Events",path+ggzz_list[3])
   df_ggZZ_2e2mu_tree = df_ggZZ_2e2mu_tree.Define("genweight","puWeight*genWeight/abs(genWeight)")
   df_ggZZ_2e2mu = df_ggZZ_2e2mu_tree.Filter(filters)
-  df_ggZZ_2e2mu_trigger = all_trigger(df_ggZZ_2e2mu)
+  df_ggZZ_2e2mu_photon = df_ggZZ_2e2mu.Filter(photon_filter1)
+  df_ggZZ_2e2mu_trigger = all_trigger(df_ggZZ_2e2mu_photon)
+  df_ggZZ_2e2mu_trigger = df_ggZZ_2e2mu_trigger.Define('photon_pt','Photon_pt[loosePhotons_matched_id[0]]')
+  df_ggZZ_2e2mu_trigger = df_ggZZ_2e2mu_trigger.Define('photon_eta','Photon_eta[loosePhotons_matched_id[0]]')
+  df_ggZZ_2e2mu_trigger = df_ggZZ_2e2mu_trigger.Define('photon_phi','Photon_phi[loosePhotons_matched_id[0]]')
   df_ggZZ_2e2mu_histos=[]
   for i in hists_name:
     df_ggZZ_2e2mu_histo = df_ggZZ_2e2mu_trigger.Histo1D((i,'',histos_bins[i],histos_bins_low[i],histos_bins_high[i]), i,'genweight')
@@ -264,7 +300,11 @@ def ZZ_Analysis():
   df_ggZZ_2e2tau_tree = ROOT.RDataFrame("Events",path+ggzz_list[4])
   df_ggZZ_2e2tau_tree = df_ggZZ_2e2tau_tree.Define("genweight","puWeight*genWeight/abs(genWeight)")
   df_ggZZ_2e2tau = df_ggZZ_2e2tau_tree.Filter(filters)
-  df_ggZZ_2e2tau_trigger = all_trigger(df_ggZZ_2e2tau)
+  df_ggZZ_2e2tau_photon = df_ggZZ_2e2tau.Filter(photon_filter1)
+  df_ggZZ_2e2tau_trigger = all_trigger(df_ggZZ_2e2tau_photon)
+  df_ggZZ_2e2tau_trigger = df_ggZZ_2e2tau_trigger.Define('photon_pt','Photon_pt[loosePhotons_matched_id[0]]')
+  df_ggZZ_2e2tau_trigger = df_ggZZ_2e2tau_trigger.Define('photon_eta','Photon_eta[loosePhotons_matched_id[0]]')
+  df_ggZZ_2e2tau_trigger = df_ggZZ_2e2tau_trigger.Define('photon_phi','Photon_phi[loosePhotons_matched_id[0]]')
   df_ggZZ_2e2tau_histos=[]
   for i in hists_name:
     df_ggZZ_2e2tau_histo = df_ggZZ_2e2tau_trigger.Histo1D((i,'',histos_bins[i],histos_bins_low[i],histos_bins_high[i]), i,'genweight')
@@ -273,7 +313,11 @@ def ZZ_Analysis():
   df_ggZZ_2mu2tau_tree = ROOT.RDataFrame("Events",path+ggzz_list[5])
   df_ggZZ_2mu2tau_tree = df_ggZZ_2mu2tau_tree.Define("genweight","puWeight*genWeight/abs(genWeight)")
   df_ggZZ_2mu2tau = df_ggZZ_2mu2tau_tree.Filter(filters)
-  df_ggZZ_2mu2tau_trigger = all_trigger(df_ggZZ_2mu2tau)
+  df_ggZZ_2mu2tau_photon = df_ggZZ_2mu2tau.Filter(photon_filter1)
+  df_ggZZ_2mu2tau_trigger = all_trigger(df_ggZZ_2mu2tau_photon)
+  df_ggZZ_2mu2tau_trigger = df_ggZZ_2mu2tau_trigger.Define('photon_pt','Photon_pt[loosePhotons_matched_id[0]]')
+  df_ggZZ_2mu2tau_trigger = df_ggZZ_2mu2tau_trigger.Define('photon_eta','Photon_eta[loosePhotons_matched_id[0]]')
+  df_ggZZ_2mu2tau_trigger = df_ggZZ_2mu2tau_trigger.Define('photon_phi','Photon_phi[loosePhotons_matched_id[0]]')
   df_ggZZ_2mu2tau_histos=[]
   for i in hists_name:
     df_ggZZ_2mu2tau_histo = df_ggZZ_2mu2tau_trigger.Histo1D((i,'',histos_bins[i],histos_bins_low[i],histos_bins_high[i]), i,'genweight')
@@ -282,7 +326,11 @@ def ZZ_Analysis():
   df_TTZ_tree = ROOT.RDataFrame("Events",path+top_list[0])
   df_TTZ_tree = df_TTZ_tree.Define("genweight","puWeight*genWeight/abs(genWeight)")
   df_TTZ = df_TTZ_tree.Filter(filters)
-  df_TTZ_trigger = all_trigger(df_TTZ)
+  df_TTZ_photon = df_TTZ.Filter(photon_filter1)
+  df_TTZ_trigger = all_trigger(df_TTZ_photon)
+  df_TTZ_trigger = df_TTZ_trigger.Define('photon_pt','Photon_pt[loosePhotons_matched_id[0]]')
+  df_TTZ_trigger = df_TTZ_trigger.Define('photon_eta','Photon_eta[loosePhotons_matched_id[0]]')
+  df_TTZ_trigger = df_TTZ_trigger.Define('photon_phi','Photon_phi[loosePhotons_matched_id[0]]')
   df_TTZ_histos=[]
   for i in hists_name:
     df_TTZ_histo = df_TTZ_trigger.Histo1D((i,'',histos_bins[i],histos_bins_low[i],histos_bins_high[i]), i,'genweight')
@@ -291,7 +339,11 @@ def ZZ_Analysis():
   df_TTG_tree = ROOT.RDataFrame("Events",path+top_list[1])
   df_TTG_tree = df_TTG_tree.Define("genweight","puWeight*genWeight/abs(genWeight)")
   df_TTG = df_TTG_tree.Filter(filters)
-  df_TTG_trigger = all_trigger(df_TTG)
+  df_TTG_photon = df_TTG.Filter(photon_filter1)
+  df_TTG_trigger = all_trigger(df_TTG_photon)
+  df_TTG_trigger = df_TTG_trigger.Define('photon_pt','Photon_pt[loosePhotons_matched_id[0]]')
+  df_TTG_trigger = df_TTG_trigger.Define('photon_eta','Photon_eta[loosePhotons_matched_id[0]]')
+  df_TTG_trigger = df_TTG_trigger.Define('photon_phi','Photon_phi[loosePhotons_matched_id[0]]')
   df_TTG_histos=[]
   for i in hists_name:
     df_TTG_histo = df_TTG_trigger.Histo1D((i,'',histos_bins[i],histos_bins_low[i],histos_bins_high[i]), i,'genweight')
@@ -300,7 +352,11 @@ def ZZ_Analysis():
   df_WWZ_tree = ROOT.RDataFrame("Events",path+vvv_list[0])
   df_WWZ_tree = df_WWZ_tree.Define("genweight","puWeight*genWeight/abs(genWeight)")
   df_WWZ = df_WWZ_tree.Filter(filters)
-  df_WWZ_trigger = all_trigger(df_WWZ)
+  df_WWZ_photon = df_WWZ.Filter(photon_filter1)
+  df_WWZ_trigger = all_trigger(df_WWZ_photon)
+  df_WWZ_trigger = df_WWZ_trigger.Define('photon_pt','Photon_pt[loosePhotons_matched_id[0]]')
+  df_WWZ_trigger = df_WWZ_trigger.Define('photon_eta','Photon_eta[loosePhotons_matched_id[0]]')
+  df_WWZ_trigger = df_WWZ_trigger.Define('photon_phi','Photon_phi[loosePhotons_matched_id[0]]')
   df_WWZ_histos=[]
   for i in hists_name:
     df_WWZ_histo = df_WWZ_trigger.Histo1D((i,'',histos_bins[i],histos_bins_low[i],histos_bins_high[i]), i,'genweight')
@@ -309,7 +365,11 @@ def ZZ_Analysis():
   df_WZG_tree = ROOT.RDataFrame("Events",path+vvv_list[1])
   df_WZG_tree = df_WZG_tree.Define("genweight","puWeight*genWeight/abs(genWeight)")
   df_WZG = df_WZG_tree.Filter(filters)
-  df_WZG_trigger = all_trigger(df_WZG)
+  df_WZG_photon = df_WZG.Filter(photon_filter1)
+  df_WZG_trigger = all_trigger(df_WZG_photon)
+  df_WZG_trigger = df_WZG_trigger.Define('photon_pt','Photon_pt[loosePhotons_matched_id[0]]')
+  df_WZG_trigger = df_WZG_trigger.Define('photon_eta','Photon_eta[loosePhotons_matched_id[0]]')
+  df_WZG_trigger = df_WZG_trigger.Define('photon_phi','Photon_phi[loosePhotons_matched_id[0]]')
   df_WZG_histos=[]
   for i in hists_name:
     df_WZG_histo = df_WZG_trigger.Histo1D((i,'',histos_bins[i],histos_bins_low[i],histos_bins_high[i]), i,'genweight')
@@ -318,7 +378,11 @@ def ZZ_Analysis():
   df_WZZ_tree = ROOT.RDataFrame("Events",path+vvv_list[2])
   df_WZZ_tree = df_WZZ_tree.Define("genweight","puWeight*genWeight/abs(genWeight)")
   df_WZZ = df_WZZ_tree.Filter(filters)
-  df_WZZ_trigger = all_trigger(df_WZZ)
+  df_WZZ_photon = df_WZZ.Filter(photon_filter1)
+  df_WZZ_trigger = all_trigger(df_WZZ_photon)
+  df_WZZ_trigger = df_WZZ_trigger.Define('photon_pt','Photon_pt[loosePhotons_matched_id[0]]')
+  df_WZZ_trigger = df_WZZ_trigger.Define('photon_eta','Photon_eta[loosePhotons_matched_id[0]]')
+  df_WZZ_trigger = df_WZZ_trigger.Define('photon_phi','Photon_phi[loosePhotons_matched_id[0]]')
   df_WZZ_histos=[]
   for i in hists_name:
     df_WZZ_histo = df_WZZ_trigger.Histo1D((i,'',histos_bins[i],histos_bins_low[i],histos_bins_high[i]), i,'genweight')
@@ -327,7 +391,11 @@ def ZZ_Analysis():
   df_ZZZ_tree = ROOT.RDataFrame("Events",path+vvv_list[3])
   df_ZZZ_tree = df_ZZZ_tree.Define("genweight","puWeight*genWeight/abs(genWeight)")
   df_ZZZ = df_ZZZ_tree.Filter(filters)
-  df_ZZZ_trigger = all_trigger(df_ZZZ)
+  df_ZZZ_photon = df_ZZZ.Filter(photon_filter1)
+  df_ZZZ_trigger = all_trigger(df_ZZZ_photon)
+  df_ZZZ_trigger = df_ZZZ_trigger.Define('photon_pt','Photon_pt[loosePhotons_matched_id[0]]')
+  df_ZZZ_trigger = df_ZZZ_trigger.Define('photon_eta','Photon_eta[loosePhotons_matched_id[0]]')
+  df_ZZZ_trigger = df_ZZZ_trigger.Define('photon_phi','Photon_phi[loosePhotons_matched_id[0]]')
   df_ZZZ_histos=[]
   for i in hists_name:
     df_ZZZ_histo = df_ZZZ_trigger.Histo1D((i,'',histos_bins[i],histos_bins_low[i],histos_bins_high[i]), i,'genweight')
@@ -336,7 +404,11 @@ def ZZ_Analysis():
   df_WZTo3L_tree = ROOT.RDataFrame("Events",path+vv_list[0])
   df_WZTo3L_tree = df_WZTo3L_tree.Define("genweight","puWeight*genWeight/abs(genWeight)")
   df_WZTo3L = df_WZTo3L_tree.Filter(filters)
-  df_WZTo3L_trigger = all_trigger(df_WZTo3L)
+  df_WZTo3L_photon = df_WZTo3L.Filter(photon_filter2)
+  df_WZTo3L_trigger = all_trigger(df_WZTo3L_photon)
+  df_WZTo3L_trigger = df_WZTo3L_trigger.Define('photon_pt','Photon_pt[loosePhotons_unmatched_id[0]]')
+  df_WZTo3L_trigger = df_WZTo3L_trigger.Define('photon_eta','Photon_eta[loosePhotons_unmatched_id[0]]')
+  df_WZTo3L_trigger = df_WZTo3L_trigger.Define('photon_phi','Photon_phi[loosePhotons_unmatched_id[0]]')
   df_WZTo3L_histos=[]
   for i in hists_name:
     df_WZTo3L_histo = df_WZTo3L_trigger.Histo1D((i,'',histos_bins[i],histos_bins_low[i],histos_bins_high[i]), i,'genweight')
@@ -345,7 +417,11 @@ def ZZ_Analysis():
   df_WZTo2L_tree = ROOT.RDataFrame("Events",path+vv_list[1])
   df_WZTo2L_tree = df_WZTo2L_tree.Define("genweight","puWeight*genWeight/abs(genWeight)")
   df_WZTo2L = df_WZTo2L_tree.Filter(filters)
-  df_WZTo2L_trigger = all_trigger(df_WZTo2L)
+  df_WZTo2L_photon = df_WZTo2L.Filter(photon_filter2)
+  df_WZTo2L_trigger = all_trigger(df_WZTo2L_photon)
+  df_WZTo2L_trigger = df_WZTo2L_trigger.Define('photon_pt','Photon_pt[loosePhotons_unmatched_id[0]]')
+  df_WZTo2L_trigger = df_WZTo2L_trigger.Define('photon_eta','Photon_eta[loosePhotons_unmatched_id[0]]')
+  df_WZTo2L_trigger = df_WZTo2L_trigger.Define('photon_phi','Photon_phi[loosePhotons_unmatched_id[0]]')
   df_WZTo2L_histos=[]
   for i in hists_name:
     df_WZTo2L_histo = df_WZTo2L_trigger.Histo1D((i,'',histos_bins[i],histos_bins_low[i],histos_bins_high[i]), i,'genweight')
@@ -354,7 +430,11 @@ def ZZ_Analysis():
   df_ZG_tree = ROOT.RDataFrame("Events",path+vv_list[2])
   df_ZG_tree = df_ZG_tree.Define("genweight","puWeight*genWeight/abs(genWeight)")
   df_ZG = df_ZG_tree.Filter(filters)
-  df_ZG_trigger = all_trigger(df_ZG)
+  df_ZG_photon = df_ZG.Filter(photon_filter1)
+  df_ZG_trigger = all_trigger(df_ZG_photon)
+  df_ZG_trigger = df_ZG_trigger.Define('photon_pt','Photon_pt[loosePhotons_matched_id[0]]')
+  df_ZG_trigger = df_ZG_trigger.Define('photon_eta','Photon_eta[loosePhotons_matched_id[0]]')
+  df_ZG_trigger = df_ZG_trigger.Define('photon_phi','Photon_phi[loosePhotons_matched_id[0]]')
   df_ZG_histos=[]
   for i in hists_name:
     df_ZG_histo = df_ZG_trigger.Histo1D((i,'',histos_bins[i],histos_bins_low[i],histos_bins_high[i]), i,'genweight')
@@ -362,7 +442,11 @@ def ZZ_Analysis():
 
   df_DoubleMu_tree = ROOT.RDataFrame("Events", doubleMu_names)
   df_DoubleMu = df_DoubleMu_tree.Filter(filters)
-  df_DoubleMu_trigger = for_dimuon_trigger(df_DoubleMu) 
+  df_DoubleMu_photon = df_DoubleMu.Filter(photon_filter1)
+  df_DoubleMu_trigger = for_dimuon_trigger(df_DoubleMu_photon) 
+  df_DoubleMu_trigger = df_DoubleMu_trigger.Define('photon_pt','Photon_pt[loosePhotons_matched_id[0]]')
+  df_DoubleMu_trigger = df_DoubleMu_trigger.Define('photon_eta','Photon_eta[loosePhotons_matched_id[0]]')
+  df_DoubleMu_trigger = df_DoubleMu_trigger.Define('photon_phi','Photon_phi[loosePhotons_matched_id[0]]')
   df_DoubleMu_histos=[]
   for i in hists_name:
     df_DoubleMu_histo = df_DoubleMu_trigger.Histo1D((i,'',histos_bins[i],histos_bins_low[i],histos_bins_high[i]), i)
@@ -370,7 +454,11 @@ def ZZ_Analysis():
 
   df_SingleMu_tree = ROOT.RDataFrame("Events", singleMu_names)
   df_SingleMu = df_SingleMu_tree.Filter(filters)
-  df_SingleMu_trigger = for_singlemuon_trigger(df_SingleMu) 
+  df_SingleMu_photon = df_SingleMu.Filter(photon_filter1)
+  df_SingleMu_trigger = for_singlemuon_trigger(df_SingleMu_photon) 
+  df_SingleMu_trigger = df_SingleMu_trigger.Define('photon_pt','Photon_pt[loosePhotons_matched_id[0]]')
+  df_SingleMu_trigger = df_SingleMu_trigger.Define('photon_eta','Photon_eta[loosePhotons_matched_id[0]]')
+  df_SingleMu_trigger = df_SingleMu_trigger.Define('photon_phi','Photon_phi[loosePhotons_matched_id[0]]')
   df_SingleMu_histos=[]
   for i in hists_name:
     df_SingleMu_histo = df_SingleMu_trigger.Histo1D((i,'',histos_bins[i],histos_bins_low[i],histos_bins_high[i]), i)
@@ -378,7 +466,11 @@ def ZZ_Analysis():
 
   df_DoubleEle_tree = ROOT.RDataFrame("Events", doubleEle_names)
   df_DoubleEle = df_DoubleEle_tree.Filter(filters)
-  df_DoubleEle_trigger = for_diele_trigger(df_DoubleEle)
+  df_DoubleEle_photon = df_DoubleEle.Filter(photon_filter1)
+  df_DoubleEle_trigger = for_diele_trigger(df_DoubleEle_photon)
+  df_DoubleEle_trigger = df_DoubleEle_trigger.Define('photon_pt','Photon_pt[loosePhotons_matched_id[0]]')
+  df_DoubleEle_trigger = df_DoubleEle_trigger.Define('photon_eta','Photon_eta[loosePhotons_matched_id[0]]')
+  df_DoubleEle_trigger = df_DoubleEle_trigger.Define('photon_phi','Photon_phi[loosePhotons_matched_id[0]]')
   df_DoubleEle_histos=[]
   for i in hists_name:
     df_DoubleEle_histo = df_DoubleEle_trigger.Histo1D((i,'',histos_bins[i],histos_bins_low[i],histos_bins_high[i]), i)
@@ -386,7 +478,11 @@ def ZZ_Analysis():
 
   df_SingleEle_tree = ROOT.RDataFrame("Events", singleEle_names)
   df_SingleEle = df_SingleEle_tree.Filter(filters)
-  df_SingleEle_trigger = for_singleele_trigger(df_SingleEle)
+  df_SingleEle_photon = df_SingleEle.Filter(photon_filter1)
+  df_SingleEle_trigger = for_singleele_trigger(df_SingleEle_photon)
+  df_SingleEle_trigger = df_SingleEle_trigger.Define('photon_pt','Photon_pt[loosePhotons_matched_id[0]]')
+  df_SingleEle_trigger = df_SingleEle_trigger.Define('photon_eta','Photon_eta[loosePhotons_matched_id[0]]')
+  df_SingleEle_trigger = df_SingleEle_trigger.Define('photon_phi','Photon_phi[loosePhotons_matched_id[0]]')
   df_SingleEle_histos=[]
   for i in hists_name:
     df_SingleEle_histo = df_SingleEle_trigger.Histo1D((i,'',histos_bins[i],histos_bins_low[i],histos_bins_high[i]), i)
@@ -394,7 +490,11 @@ def ZZ_Analysis():
 
   df_MuonEle_tree = ROOT.RDataFrame("Events", muonEle_names)
   df_MuonEle = df_MuonEle_tree.Filter(filters)
-  df_MuonEle_trigger = for_cross_trigger(df_MuonEle)
+  df_MuonEle_photon = df_MuonEle.Filter(photon_filter1)
+  df_MuonEle_trigger = for_cross_trigger(df_MuonEle_photon)
+  df_MuonEle_trigger = df_MuonEle_trigger.Define('photon_pt','Photon_pt[loosePhotons_matched_id[0]]')
+  df_MuonEle_trigger = df_MuonEle_trigger.Define('photon_eta','Photon_eta[loosePhotons_matched_id[0]]')
+  df_MuonEle_trigger = df_MuonEle_trigger.Define('photon_phi','Photon_phi[loosePhotons_matched_id[0]]')
   df_MuonEle_histos=[]
   for i in hists_name:
     df_MuonEle_histo = df_MuonEle_trigger.Histo1D((i,'',histos_bins[i],histos_bins_low[i],histos_bins_high[i]), i)
@@ -494,13 +594,13 @@ def ZZ_Analysis():
     for i in range(0,22):
       histos[i]=overunder_flowbin(histos[i])
 
-    c1 = plot_ZZregion.draw_plots(histos, 1, hists_name[ij])
+    c1 = plot_ZZGregion.draw_plots(histos, 1, hists_name[ij])
     del histos[:]
  
 if __name__ == "__main__":
   start = time.time()
   start1 = time.clock() 
-  ZZ_Analysis()
+  ZZG_Analysis()
   end = time.time()
   end1 = time.clock()
   print "wall time:", end-start
